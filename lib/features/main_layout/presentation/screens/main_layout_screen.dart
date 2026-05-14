@@ -163,12 +163,6 @@ class _Sidebar extends ConsumerWidget {
             onTap: () => context.go('/statistics'),
           ),
           const Spacer(),
-          _SidebarItem(
-            icon: Icons.settings_rounded,
-            label: 'Настройки',
-            isSelected: location == '/settings',
-            onTap: () => context.go('/settings'),
-          ),
           const SizedBox(height: 24),
         ],
       ),

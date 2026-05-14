@@ -65,12 +65,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/statistics',
             builder: (context, state) => const StatisticsScreen(),
           ),
-
-          GoRoute(
-            path: '/settings',
-            builder: (context, state) =>
-                const Scaffold(body: Center(child: Text('Settings'))),
-          ),
         ],
       ),
     ],
