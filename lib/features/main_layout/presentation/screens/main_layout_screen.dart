@@ -243,7 +243,6 @@ class _Header extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final authState = ref.watch(authControllerProvider);
 
     return Container(
       height: 80,

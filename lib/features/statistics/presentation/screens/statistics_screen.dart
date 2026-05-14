@@ -7,6 +7,8 @@ import '../../../../widgets/glass_box.dart';
 import '../providers/statistics_controller.dart';
 import '../../domain/models/stat_group_model.dart';
 
+import '../utils/statistics_pdf_export.dart';
+
 class StatisticsScreen extends ConsumerWidget {
   const StatisticsScreen({super.key});
 
@@ -53,6 +55,21 @@ class StatisticsScreen extends ConsumerWidget {
                       }
                     },
                     labelExtractor: (item) => item.label,
+                  ),
+                  const SizedBox(width: 24),
+                  ElevatedButton.icon(
+                    onPressed: statsAsync.maybeWhen(
+                      data: (data) => () => StatisticsPdfExport.export(data, groupType.label),
+                      orElse: () => null,
+                    ),
+                    icon: const Icon(Icons.picture_as_pdf),
+                    label: const Text('Экспорт в PDF'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: ThemeColors.blue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
                   ),
                 ],
               ),

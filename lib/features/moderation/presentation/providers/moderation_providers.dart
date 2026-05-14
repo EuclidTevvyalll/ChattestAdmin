@@ -24,6 +24,10 @@ class ReportsNotifier extends AsyncNotifier<List<ReportModel>> {
     });
   }
 
+  void restoreState(List<ReportModel> reports) {
+    state = AsyncValue.data(reports);
+  }
+
   Future<void> refresh() async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() => ref.read(moderationRepositoryProvider).getReports());
@@ -53,7 +57,7 @@ class ModerationController extends Notifier<AsyncValue<void>> {
       } catch (e) {
         // Откат при ошибке
         if (previousReports != null) {
-          ref.read(reportsProvider.notifier).state = AsyncValue.data(previousReports);
+          ref.read(reportsProvider.notifier).restoreState(previousReports);
         }
         rethrow;
       }
@@ -73,7 +77,7 @@ class ModerationController extends Notifier<AsyncValue<void>> {
         await repository.updateStatus(reportId, 'resolved');
       } catch (e) {
         if (previousReports != null) {
-          ref.read(reportsProvider.notifier).state = AsyncValue.data(previousReports);
+          ref.read(reportsProvider.notifier).restoreState(previousReports);
         }
         rethrow;
       }
@@ -93,7 +97,7 @@ class ModerationController extends Notifier<AsyncValue<void>> {
         await repository.updateStatus(reportId, 'resolved');
       } catch (e) {
         if (previousReports != null) {
-          ref.read(reportsProvider.notifier).state = AsyncValue.data(previousReports);
+          ref.read(reportsProvider.notifier).restoreState(previousReports);
         }
         rethrow;
       }

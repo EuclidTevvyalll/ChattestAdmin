@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import '../../../../theme/theme_colors.dart';
 import '../../../../theme/text_theme.dart';
 import '../../../../widgets/glass_box.dart';
-import '../../../auth/presentation/providers/auth_controller.dart';
 import '../providers/user_providers.dart';
 
 class ProfileDetailScreen extends ConsumerWidget {
@@ -18,14 +17,7 @@ class ProfileDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userAsync = ref.watch(userProfileProvider(userId));
-    final currentAuth = ref.watch(authControllerProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    final currentUserId = currentAuth.maybeWhen(
-      data: (user) => user?.id,
-      orElse: () => null,
-    );
-    final isOwnProfile = currentUserId == userId;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -232,90 +224,6 @@ class ProfileDetailScreen extends ConsumerWidget {
               const SizedBox(height: 4),
               Text(value, style: ThemeTextStyles.bodyLarge(isDark: isDark, fontWeight: FontWeight.bold)),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActions(BuildContext context, dynamic user, bool isDark) {
-    return GlassBox(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Действия', style: ThemeTextStyles.h3(isDark: isDark)),
-          const SizedBox(height: 24),
-          _buildActionButton(
-            'Заблокировать', 
-            Icons.block, 
-            Colors.redAccent, 
-            () {},
-          ),
-          const SizedBox(height: 16),
-          _buildActionButton(
-            user.isAdmin ? 'Снять права админа' : 'Сделать админом', 
-            Icons.security, 
-            user.isAdmin ? Colors.orange : Colors.blueGrey, 
-            () {},
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton(String label, IconData icon, Color color, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          border: Border.all(color: color.withAlpha(50)),
-          borderRadius: BorderRadius.circular(12),
-          color: color.withAlpha(10),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, size: 20, color: color),
-            const SizedBox(width: 12),
-            Text(
-              label,
-              style: TextStyle(color: color, fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOwnProfileNotice(bool isDark) {
-    return GlassBox(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: ThemeColors.blue.withAlpha(20),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.verified_user_rounded, color: ThemeColors.blue, size: 32),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'Это ваш профиль',
-            style: ThemeTextStyles.h3(isDark: isDark),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Вы просматриваете свои данные. Управление собственным аккаунтом через панель действий ограничено в целях безопасности.',
-            style: ThemeTextStyles.caption(
-              isDark: isDark,
-              color: isDark ? Colors.white54 : Colors.black54,
-            ),
-            textAlign: TextAlign.center,
           ),
         ],
       ),

@@ -528,31 +528,6 @@ class _ReportDetailView extends ConsumerWidget {
     );
   }
 
-  void _confirmAction(BuildContext context, String title, String message, VoidCallback onConfirm) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Отмена'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context); // Закрыть диалог подтверждения
-              onConfirm();
-              onClose(); // Закрыть окно деталей
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Подтвердить'),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showBlockDurationDialog(BuildContext context, String reportId, String userId, String reason, WidgetRef ref, VoidCallback onClose) {
     showDialog(
       context: context,
