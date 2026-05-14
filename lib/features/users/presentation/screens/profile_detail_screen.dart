@@ -62,15 +62,7 @@ class ProfileDetailScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      flex: 2,
                       child: _buildMainInfo(context, user, formattedDate, isDark),
-                    ),
-                    const SizedBox(width: 32),
-                    Expanded(
-                      flex: 1,
-                      child: isOwnProfile
-                          ? _buildOwnProfileNotice(isDark)
-                          : _buildActions(context, user, isDark),
                     ),
                   ],
                 ),
@@ -258,13 +250,6 @@ class ProfileDetailScreen extends ConsumerWidget {
             'Заблокировать', 
             Icons.block, 
             Colors.redAccent, 
-            () {},
-          ),
-          const SizedBox(height: 16),
-          _buildActionButton(
-            'Написать сообщение', 
-            Icons.message_outlined, 
-            ThemeColors.blue, 
             () {},
           ),
           const SizedBox(height: 16),

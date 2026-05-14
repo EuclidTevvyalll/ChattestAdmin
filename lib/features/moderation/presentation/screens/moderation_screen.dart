@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../widgets/video_player_bubble.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -17,6 +19,23 @@ class ModerationScreen extends HookConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final selectedReport = useState<ReportModel?>(null);
     final filterStatus = useState<String>('pending'); // 'all', 'pending', 'handled'
+
+    // Слушаем ошибки контроллера
+    ref.listen<AsyncValue<void>>(moderationControllerProvider, (prev, next) {
+      next.when(
+        data: (_) {},
+        error: (err, stack) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Ошибка выполнения: $err'),
+              backgroundColor: Colors.redAccent,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        },
+        loading: () {},
+      );
+    });
 
     return Stack(
       children: [
@@ -148,7 +167,7 @@ class _ReportCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final date = report.createdAt != null 
-        ? DateFormat('dd.MM.yyyy HH:mm').format(report.createdAt!) 
+        ? DateFormat('dd.MM.yyyy HH:mm').format(report.createdAt!.toLocal()) 
         : '';
 
     return Padding(
@@ -227,7 +246,10 @@ class _ReportDetailView extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 700),
+      constraints: BoxConstraints(
+        maxWidth: 700,
+        maxHeight: MediaQuery.of(context).size.height * 0.9,
+      ),
       child: GlassBox(
         padding: const EdgeInsets.all(32),
         child: Column(
@@ -248,95 +270,126 @@ class _ReportDetailView extends ConsumerWidget {
             ),
             const Divider(height: 40),
             
-            // Информация о репорте
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: _buildInfoLabel('Отправитель', report.reporterName ?? report.reporterId, isDark),
-                ),
-                Expanded(
-                  child: _buildInfoLabel('Тип нарушения', report.localizedReason, isDark, isBold: true),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            if (report.details != null && report.details!.isNotEmpty) ...[
-              _buildInfoLabel('Дополнительные детали', report.details!, isDark),
-              const SizedBox(height: 24),
-            ],
-            
-            // Информация о цели
-            Text(report.targetType == 'user' ? 'Профиль нарушителя' : 'Контент нарушения', 
-                 style: ThemeTextStyles.caption(isDark: isDark)),
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: isDark ? Colors.white.withAlpha(10) : Colors.black.withAlpha(5),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(report.targetName ?? report.targetId, 
-                       style: ThemeTextStyles.bodyLarge(isDark: isDark, fontWeight: FontWeight.bold)),
-                  if (report.targetType == 'message' && report.reportedContent != null) ...[
-                    const SizedBox(height: 12),
-                    
-                    // Если это ответ (Reply)
-                    if (report.replyToContent != null)
-                      Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.only(left: 12),
-                        decoration: const BoxDecoration(
-                          border: Border(left: BorderSide(color: ThemeColors.blue, width: 3)),
+            // Прокручиваемая часть
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Информация о репорте
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: _buildInfoLabel('Отправитель', report.reporterName ?? report.reporterId, isDark),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(report.replyToAuthor ?? 'Автор', 
-                                 style: ThemeTextStyles.caption(isDark: isDark, color: ThemeColors.blue)),
-                            Text(report.replyToContent!, 
-                                 maxLines: 2, overflow: TextOverflow.ellipsis,
-                                 style: ThemeTextStyles.bodySmall(isDark: isDark, color: isDark ? Colors.white54 : Colors.black54)),
-                          ],
+                        Expanded(
+                          child: _buildInfoLabel('Тип нарушения', report.localizedReason, isDark, isBold: true),
                         ),
-                      ),
-
-                    // Текст сообщения
-                    Text(report.reportedContent!, style: ThemeTextStyles.bodyMedium(isDark: isDark)),
-                    
-                    // Медиа контент
-                    if (report.mediaUrl != null) ...[
-                      const SizedBox(height: 16),
-                      if (report.mediaType == 'image')
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            report.mediaUrl!,
-                            width: 300,
-                            height: 300,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => 
-                              const Icon(Icons.broken_image_rounded, size: 48, color: Colors.grey),
+                        Expanded(
+                          child: _buildInfoLabel(
+                            'Дата подачи', 
+                            report.createdAt != null ? DateFormat('dd.MM.yyyy HH:mm').format(report.createdAt!.toLocal()) : 'Неизвестно', 
+                            isDark
                           ),
-                        )
-                      else
-                        _buildMediaPlaceholder(report.mediaType ?? 'file'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    if (report.details != null && report.details!.isNotEmpty) ...[
+                      _buildInfoLabel('Дополнительные детали', report.details!, isDark),
+                      const SizedBox(height: 24),
                     ],
+                    
+                    // Информация о цели
+                    Text(report.targetType == 'user' ? 'Профиль нарушителя' : 'Контент нарушения', 
+                         style: ThemeTextStyles.caption(isDark: isDark)),
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white.withAlpha(10) : Colors.black.withAlpha(5),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(report.targetName ?? report.targetId, 
+                               style: ThemeTextStyles.bodyLarge(isDark: isDark, fontWeight: FontWeight.bold)),
+                          if (report.targetType == 'message' && report.reportedContent != null) ...[
+                            const SizedBox(height: 12),
+                            
+                            // Если это ответ (Reply)
+                            if (report.replyToContent != null)
+                              Container(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                padding: const EdgeInsets.only(left: 12),
+                                decoration: const BoxDecoration(
+                                  border: Border(left: BorderSide(color: ThemeColors.blue, width: 3)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(report.replyToAuthor ?? 'Автор', 
+                                         style: ThemeTextStyles.caption(isDark: isDark, color: ThemeColors.blue)),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      report.replyToContent!,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: ThemeTextStyles.bodySmall(isDark: isDark, color: isDark ? Colors.white54 : Colors.black54),
+                                    ),
+                                  ],
+                                ),
+                              ),
+        
+                            // Текст сообщения
+                            Text(report.reportedContent!, style: ThemeTextStyles.bodyMedium(isDark: isDark)),
+                            
+                            // Медиа контент
+                            if (report.mediaUrl != null) ...[
+                              const SizedBox(height: 16),
+                              if (report.mediaType?.startsWith('image') ?? false)
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: InkWell(
+                                    onTap: () => _showMediaDetail(context, isDark, report.mediaUrl!),
+                                    child: Image.network(
+                                      report.mediaUrl!,
+                                      width: 300,
+                                      height: 300,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) => 
+                                        const Icon(Icons.broken_image_rounded, size: 48, color: Colors.grey),
+                                    ),
+                                  ),
+                                )
+                              else if (report.mediaType?.startsWith('video') ?? false)
+                                VideoPlayerBubble(
+                                  videoUrl: report.mediaUrl!,
+                                  maxWidth: 300,
+                                )
+                              else
+                                _buildMediaPlaceholder(report.mediaType ?? 'file'),
+                            ],
+                          ],
+                        ],
+                      ),
+                    ),
                   ],
-                ],
+                ),
               ),
             ),
-            
-            const SizedBox(height: 40),
+
+            const Divider(height: 40),
             
             // Кнопки действий
             if (report.status == 'pending')
               Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(
                     children: [
@@ -344,21 +397,12 @@ class _ReportDetailView extends ConsumerWidget {
                       if (report.targetType == 'message')
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: () => _confirmAction(
-                              context, 
-                              'Удалить сообщение?', 
-                              'Это сообщение будет скрыто для всех пользователей.',
-                              () => ref.read(moderationControllerProvider.notifier).deleteMessage(report.id, report.targetId),
-                            ),
+                            onPressed: () => ref.read(moderationControllerProvider.notifier).deleteMessage(report.id, report.targetId).then((_) => onClose()),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.redAccent.withAlpha(40),
-                              foregroundColor: Colors.redAccent,
-                              elevation: 0,
+                              backgroundColor: Colors.orange,
+                              foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                side: const BorderSide(color: Colors.redAccent, width: 1),
-                              ),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             ),
                             child: const Text('Удалить сообщение'),
                           ),
@@ -375,11 +419,13 @@ class _ReportDetailView extends ConsumerWidget {
                             
                             if (targetUserId == null) return;
 
-                            _confirmAction(
+                            _showBlockDurationDialog(
                               context, 
-                              'Заблокировать пользователя?', 
-                              'Нарушитель больше не сможет пользоваться приложением.',
-                              () => ref.read(moderationControllerProvider.notifier).blockUser(report.id, targetUserId),
+                              report.id,
+                              targetUserId,
+                              report.localizedReason,
+                              ref,
+                              onClose,
                             );
                           },
                           style: ElevatedButton.styleFrom(
@@ -398,16 +444,13 @@ class _ReportDetailView extends ConsumerWidget {
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () {
-                            ref.read(moderationControllerProvider.notifier).updateStatus(report.id, 'dismissed');
-                            onClose();
-                          },
+                          onPressed: () => ref.read(moderationControllerProvider.notifier).updateStatus(report.id, 'dismissed').then((_) => onClose()),
                           style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.grey),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            side: BorderSide(color: isDark ? Colors.white24 : Colors.black26),
                           ),
-                          child: const Text('Отклонить жалобу (Нарушений нет)', style: TextStyle(color: Colors.grey)),
+                          child: Text('Отклонить жалобу', style: TextStyle(color: isDark ? Colors.white70 : Colors.black87)),
                         ),
                       ),
                     ],
@@ -439,6 +482,52 @@ class _ReportDetailView extends ConsumerWidget {
     );
   }
 
+  void _showMediaDetail(BuildContext context, bool isDark, String mediaUrl) {
+    showDialog(
+      context: context,
+      useSafeArea: false,
+      builder: (context) => Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.black.withAlpha(128),
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
+          ),
+          actions: const [],
+        ),
+        body: InteractiveViewer(
+          minScale: 0.5,
+          maxScale: 4.0,
+          child: Center(
+            child: mediaUrl.startsWith('data:image')
+                ? Image.memory(
+                    // ignore: always_specify_types
+                    const Base64Decoder().convert(mediaUrl.split(',').last),
+                    fit: BoxFit.contain,
+                  )
+                : Image.network(
+                    mediaUrl,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return const Center(
+                        child: CircularProgressIndicator(),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) => const Icon(
+                      Icons.broken_image,
+                      color: Colors.white54,
+                      size: 64,
+                    ),
+                    fit: BoxFit.contain,
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _confirmAction(BuildContext context, String title, String message, VoidCallback onConfirm) {
     showDialog(
       context: context,
@@ -463,6 +552,54 @@ class _ReportDetailView extends ConsumerWidget {
       ),
     );
   }
+
+  void _showBlockDurationDialog(BuildContext context, String reportId, String userId, String reason, WidgetRef ref, VoidCallback onClose) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Заблокировать пользователя?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Выберите продолжительность блокировки:'),
+            const SizedBox(height: 16),
+            _buildDurationOption(context, 'На 1 час', const Duration(hours: 1), reportId, userId, reason, ref, onClose),
+            _buildDurationOption(context, 'На 1 день', const Duration(days: 1), reportId, userId, reason, ref, onClose),
+            _buildDurationOption(context, 'На 1 неделю', const Duration(days: 7), reportId, userId, reason, ref, onClose),
+            _buildDurationOption(context, 'На 1 месяц', const Duration(days: 30), reportId, userId, reason, ref, onClose),
+            _buildDurationOption(context, 'Навсегда', null, reportId, userId, reason, ref, onClose),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Отмена'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDurationOption(BuildContext context, String label, Duration? duration, String reportId, String userId, String reason, WidgetRef ref, VoidCallback onClose) {
+    return InkWell(
+      onTap: () {
+        Navigator.pop(context); // Закрыть диалог
+        ref.read(moderationControllerProvider.notifier).blockUser(reportId, userId, duration: duration, reason: reason);
+        onClose(); // Закрыть окно деталей
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12.0),
+        child: Row(
+          children: [
+            const Icon(Icons.block, color: Colors.redAccent, size: 20),
+            const SizedBox(width: 12),
+            Text(label, style: const TextStyle(fontSize: 16)),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 Widget _buildInfoLabel(String label, String value, bool isDark, {bool isBold = false}) {
@@ -479,18 +616,19 @@ Widget _buildInfoLabel(String label, String value, bool isDark, {bool isBold = f
 Widget _buildMediaPlaceholder(String type) {
   IconData icon;
   String label;
-  switch (type) {
-    case 'video':
-      icon = Icons.play_circle_outline_rounded;
-      label = 'Видео';
-      break;
-    case 'audio':
-      icon = Icons.audiotrack_rounded;
-      label = 'Аудио';
-      break;
-    default:
-      icon = Icons.insert_drive_file_rounded;
-      label = 'Файл';
+  
+  if (type.startsWith('video')) {
+    icon = Icons.play_circle_outline_rounded;
+    label = 'Видео';
+  } else if (type.startsWith('audio')) {
+    icon = Icons.audiotrack_rounded;
+    label = 'Аудио';
+  } else if (type.startsWith('image')) {
+    icon = Icons.image_outlined;
+    label = 'Изображение';
+  } else {
+    icon = Icons.insert_drive_file_rounded;
+    label = 'Файл';
   }
 
   return Container(

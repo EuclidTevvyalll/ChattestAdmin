@@ -75,7 +75,14 @@ class _Sidebar extends ConsumerWidget {
             data: (user) => Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: InkWell(
-                onTap: user != null ? () => context.push('/users/${user.id}') : null,
+              onTap: user != null
+                  ? () {
+                      final targetPath = '/users/${user.id}';
+                      if (GoRouterState.of(context).uri.path != targetPath) {
+                        context.go(targetPath);
+                      }
+                    }
+                  : null,
                 borderRadius: BorderRadius.circular(12),
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
@@ -144,22 +151,16 @@ class _Sidebar extends ConsumerWidget {
             onTap: () => context.go('/'),
           ),
           _SidebarItem(
-            icon: Icons.people_rounded,
-            label: 'Пользователи',
-            isSelected: location == '/users',
-            onTap: () => context.go('/users'),
-          ),
-          _SidebarItem(
             icon: Icons.gavel_rounded,
             label: 'Модерация',
             isSelected: location == '/moderation',
             onTap: () => context.go('/moderation'),
           ),
           _SidebarItem(
-            icon: Icons.chat_rounded,
-            label: 'Чаты',
-            isSelected: location == '/chats',
-            onTap: () => context.go('/chats'),
+            icon: Icons.analytics_rounded,
+            label: 'Статистика',
+            isSelected: location == '/statistics',
+            onTap: () => context.go('/statistics'),
           ),
           const Spacer(),
           _SidebarItem(
@@ -257,7 +258,7 @@ class _Header extends ConsumerWidget {
       child: Row(
         children: [
           Text(
-            'Обзор',
+            'Панель управления',
             style: ThemeTextStyles.h3(isDark: isDark),
           ),
           const Spacer(),
@@ -266,72 +267,8 @@ class _Header extends ConsumerWidget {
               Icons.logout_rounded,
               color: isDark ? Colors.white54 : Colors.black54,
             ),
+            tooltip: 'Выйти из системы',
             onPressed: () => ref.read(authControllerProvider.notifier).logout(),
-          ),
-          const SizedBox(width: 24),
-          authState.when(
-            data: (user) => InkWell(
-              onTap: user != null ? () => context.push('/users/${user.id}') : null,
-              borderRadius: BorderRadius.circular(12),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: Row(
-                  children: [
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          user?.nickname ?? user?.username ?? 'Admin',
-                          style: ThemeTextStyles.bodySmall(
-                            isDark: isDark,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          'Главный администратор',
-                          style: ThemeTextStyles.caption(
-                            isDark: isDark,
-                            color: isDark ? Colors.white38 : Colors.black38,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 16),
-                    Hero(
-                      tag: 'header_avatar_${user?.id}',
-                      child: Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          gradient: ThemeColors.primaryGradient,
-                          shape: BoxShape.circle,
-                          image: user?.avatarUrl != null
-                              ? DecorationImage(
-                                  image: NetworkImage(user!.avatarUrl!),
-                                  fit: BoxFit.cover,
-                                )
-                              : null,
-                        ),
-                        child: user?.avatarUrl == null
-                            ? Center(
-                                child: Text(
-                                  (user?.nickname ?? user?.username ?? 'A')[0].toUpperCase(),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              )
-                            : null,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            loading: () => const CircularProgressIndicator(strokeWidth: 2),
-            error: (_, _) => const SizedBox(),
           ),
         ],
       ),

@@ -8,6 +8,7 @@ import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/main_layout/presentation/screens/main_layout_screen.dart';
 import '../../features/moderation/presentation/screens/moderation_screen.dart';
 import '../../features/users/presentation/screens/profile_detail_screen.dart';
+import '../../features/statistics/presentation/screens/statistics_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -61,15 +62,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const ModerationScreen(),
           ),
           GoRoute(
-            path: '/users',
-            builder: (context, state) =>
-                const Scaffold(body: Center(child: Text('Users Management'))),
+            path: '/statistics',
+            builder: (context, state) => const StatisticsScreen(),
           ),
-          GoRoute(
-            path: '/chats',
-            builder: (context, state) =>
-                const Scaffold(body: Center(child: Text('Chat Management'))),
-          ),
+
           GoRoute(
             path: '/settings',
             builder: (context, state) =>

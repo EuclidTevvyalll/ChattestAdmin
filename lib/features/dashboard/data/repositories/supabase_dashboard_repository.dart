@@ -15,54 +15,42 @@ class SupabaseDashboardRepository implements DashboardRepository {
     final twoDaysAgo = now.subtract(const Duration(days: 2));
 
     // 1. Total Users
-    final usersRes = await _client
+    final totalUsers = await _client
         .from('profiles')
-        .select()
         .count(CountOption.exact);
-    final totalUsers = usersRes.count;
 
     // 2. Active Now
-    final activeRes = await _client
+    final activeNow = await _client
         .from('profiles')
-        .select()
-        .eq('is_online', true)
-        .count(CountOption.exact);
-    final activeNow = activeRes.count;
+        .count(CountOption.exact)
+        .eq('is_online', true);
 
     // 3. Total Messages
-    final messagesRes = await _client
+    final totalMessages = await _client
         .from('messages')
-        .select()
         .count(CountOption.exact);
-    final totalMessages = messagesRes.count;
 
     // 4. Trends (Simple 24h comparison)
     // New users last 24h
-    final newUsersRes = await _client
+    final newUsers = await _client
         .from('profiles')
-        .select()
-        .gte('updated_at', dayAgo.toIso8601String())
-        .count(CountOption.exact);
-    final newUsers = newUsersRes.count;
+        .count(CountOption.exact)
+        .gte('updated_at', dayAgo.toIso8601String());
 
     // Users 24h-48h ago
-    final prevNewUsersRes = await _client
+    final prevNewUsers = await _client
         .from('profiles')
-        .select()
+        .count(CountOption.exact)
         .gte('updated_at', twoDaysAgo.toIso8601String())
-        .lt('updated_at', dayAgo.toIso8601String())
-        .count(CountOption.exact);
-    final prevNewUsers = prevNewUsersRes.count;
+        .lt('updated_at', dayAgo.toIso8601String());
 
     final userTrend = _calculateTrend(newUsers, prevNewUsers);
 
     // New messages last 24h
-    final newMessagesRes = await _client
+    final newMessages = await _client
         .from('messages')
-        .select()
-        .gte('created_at', dayAgo.toIso8601String())
-        .count(CountOption.exact);
-    final newMessages = newMessagesRes.count;
+        .count(CountOption.exact)
+        .gte('created_at', dayAgo.toIso8601String());
 
     final messageTrend = _calculateTrend(newMessages, 0); // Comparing to 0 for now as an example
 
@@ -71,13 +59,12 @@ class SupabaseDashboardRepository implements DashboardRepository {
     for (int i = 6; i >= 0; i--) {
       final start = now.subtract(Duration(days: i + 1));
       final end = now.subtract(Duration(days: i));
-      final res = await _client
+      final count = await _client
           .from('messages')
-          .select()
+          .count(CountOption.exact)
           .gte('created_at', start.toIso8601String())
-          .lt('created_at', end.toIso8601String())
-          .count(CountOption.exact);
-      activityData.add(res.count.toDouble());
+          .lt('created_at', end.toIso8601String());
+      activityData.add(count.toDouble());
     }
 
     return DashboardStats(

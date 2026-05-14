@@ -1,9 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:video_player_win/video_player_win.dart';
 import 'core/router/router.dart';
 import 'theme/app_theme.dart';
 
@@ -11,6 +13,10 @@ late final SharedPreferences shared;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  if (Platform.isWindows) {
+    WindowsVideoPlayer.registerWith();
+  }
   await initializeDateFormatting('ru', null);
   await windowManager.ensureInitialized();
 

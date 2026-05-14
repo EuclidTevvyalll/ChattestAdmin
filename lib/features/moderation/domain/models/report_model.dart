@@ -58,13 +58,50 @@ class ReportModel {
 
   String get localizedReason {
     const reasons = {
-      'spam': 'Спам / Реклама',
-      'harassment': 'Оскорбление / Травля',
-      'inappropriate': 'Непристойный контент',
-      'violence': 'Насилие / Жестокость',
+      'spam': 'Спам',
+      'harassment': 'Оскорбление',
+      'inappropriate': 'Неприемлемый контент',
+      'violence': 'Насилие',
       'hate_speech': 'Враждебные высказывания',
       'other': 'Другое',
     };
     return reasons[reason] ?? reason;
+  }
+  ReportModel copyWith({
+    String? id,
+    String? reporterId,
+    String? reporterName,
+    String? targetId,
+    String? targetName,
+    String? targetAuthorId,
+    String? targetType,
+    String? reason,
+    String? details,
+    String? status,
+    DateTime? createdAt,
+    String? reportedContent,
+    String? mediaType,
+    String? mediaUrl,
+    String? replyToContent,
+    String? replyToAuthor,
+  }) {
+    return ReportModel(
+      id: id ?? this.id,
+      reporterId: reporterId ?? this.reporterId,
+      reporterName: reporterName ?? this.reporterName,
+      targetId: targetId ?? this.targetId,
+      targetName: targetName ?? this.targetName,
+      targetAuthorId: targetAuthorId ?? this.targetAuthorId,
+      targetType: targetType ?? this.targetType,
+      reason: reason ?? this.reason,
+      details: details ?? this.details,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+      reportedContent: reportedContent ?? this.reportedContent,
+      mediaType: mediaType ?? this.mediaType,
+      mediaUrl: mediaUrl ?? this.mediaUrl,
+      replyToContent: replyToContent ?? this.replyToContent,
+      replyToAuthor: replyToAuthor ?? this.replyToAuthor,
+    );
   }
 }

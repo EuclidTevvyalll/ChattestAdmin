@@ -117,11 +117,19 @@ class SupabaseModerationRepository implements ModerationRepository {
   }
 
   @override
-  Future<void> blockUser(String userId) async {
+  Future<void> blockUser(String userId, {Duration? duration, String? reason}) async {
     try {
+      final updateData = <String, dynamic>{'is_banned': true};
+      if (duration != null) {
+        updateData['banned_until'] = DateTime.now().toUtc().add(duration).toIso8601String();
+      }
+      if (reason != null) {
+        updateData['banned_reason'] = reason;
+      }
+
       await _client
           .from('profiles')
-          .update({'is_banned': true})
+          .update(updateData)
           .eq('id', userId);
     } catch (e) {
       rethrow;
@@ -135,7 +143,7 @@ class SupabaseModerationRepository implements ModerationRepository {
           .from('messages')
           .update({
             'is_deleted': true,
-            'deleted_at': DateTime.now().toIso8601String(),
+            'deleted_at': DateTime.now().toUtc().toIso8601String(),
             'deleted_by': _client.auth.currentUser?.id,
           })
           .eq('id', messageId);
