@@ -36,8 +36,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           if (isLoggingIn || isSplashScreen) return '/';
           return null;
         },
-        loading: () => isSplashScreen ? null : '/splash',
-        error: (err, stack) => '/login',
+        loading: () => isSplashScreen || isLoggingIn ? null : '/splash',
+        error: (err, stack) => isLoggingIn ? null : '/login',
       );
     },
     routes: [
