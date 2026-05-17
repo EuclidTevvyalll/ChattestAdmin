@@ -676,6 +676,7 @@ class _ReportDetailView extends ConsumerWidget {
           ],
         ),
       ),
+    );
   }
 
   Color _getAvatarColor(String name) {
@@ -916,7 +917,7 @@ class _ReportDetailView extends ConsumerWidget {
                         child: Image.network(
                           report.mediaUrl!,
                           fit: BoxFit.cover,
-                          maxHeight: 250,
+                          height: 250,
                           width: double.infinity,
                           errorBuilder: (context, error, stackTrace) =>
                               const Icon(
