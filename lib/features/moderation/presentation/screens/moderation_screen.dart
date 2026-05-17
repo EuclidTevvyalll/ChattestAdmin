@@ -376,120 +376,10 @@ class _ReportDetailView extends ConsumerWidget {
                       style: ThemeTextStyles.caption(isDark: isDark),
                     ),
                     const SizedBox(height: 12),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? Colors.white.withAlpha(10)
-                            : Colors.black.withAlpha(5),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isDark ? Colors.white10 : Colors.black12,
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            report.targetName ?? report.targetId,
-                            style: ThemeTextStyles.bodyLarge(
-                              isDark: isDark,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          if (report.targetType == 'message' &&
-                              report.reportedContent != null) ...[
-                            const SizedBox(height: 12),
-
-                            // Если это ответ (Reply)
-                            if (report.replyToContent != null)
-                              Container(
-                                margin: const EdgeInsets.only(bottom: 12),
-                                padding: const EdgeInsets.only(left: 12),
-                                decoration: const BoxDecoration(
-                                  border: Border(
-                                    left: BorderSide(
-                                      color: ThemeColors.blue,
-                                      width: 3,
-                                    ),
-                                  ),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      report.replyToAuthor ?? 'Автор',
-                                      style: ThemeTextStyles.caption(
-                                        isDark: isDark,
-                                        color: ThemeColors.blue,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      report.replyToContent!,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: ThemeTextStyles.bodySmall(
-                                        isDark: isDark,
-                                        color: isDark
-                                            ? Colors.white54
-                                            : Colors.black54,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-
-                            // Текст сообщения
-                            Text(
-                              report.reportedContent!,
-                              style: ThemeTextStyles.bodyMedium(isDark: isDark),
-                            ),
-
-                            // Медиа контент
-                            if (report.mediaUrl != null) ...[
-                              const SizedBox(height: 16),
-                              if (report.mediaType?.startsWith('image') ??
-                                  false)
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: InkWell(
-                                    onTap: () => _showMediaDetail(
-                                      context,
-                                      isDark,
-                                      report.mediaUrl!,
-                                    ),
-                                    child: Image.network(
-                                      report.mediaUrl!,
-                                      width: 300,
-                                      height: 300,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) =>
-                                              const Icon(
-                                                Icons.broken_image_rounded,
-                                                size: 48,
-                                                color: Colors.grey,
-                                              ),
-                                    ),
-                                  ),
-                                )
-                              else if (report.mediaType?.startsWith('video') ??
-                                  false)
-                                VideoPlayerBubble(
-                                  videoUrl: report.mediaUrl!,
-                                  maxWidth: 300,
-                                )
-                              else
-                                _buildMediaPlaceholder(
-                                  report.mediaType ?? 'file',
-                                ),
-                            ],
-                          ],
-                        ],
-                      ),
-                    ),
+                    if (report.targetType == 'user')
+                      _buildClientUserBubble(report, isDark)
+                    else
+                      _buildClientMessageBubble(report, isDark, context),
                   ],
                 ),
               ),
@@ -786,6 +676,285 @@ class _ReportDetailView extends ConsumerWidget {
           ],
         ),
       ),
+  }
+
+  Color _getAvatarColor(String name) {
+    final hash = name.hashCode;
+    final colors = [
+      Colors.redAccent,
+      Colors.blueAccent,
+      Colors.greenAccent,
+      Colors.orangeAccent,
+      Colors.purpleAccent,
+      Colors.tealAccent,
+      Colors.pinkAccent,
+    ];
+    return colors[hash.abs() % colors.length];
+  }
+
+  String _getInitials(String name) {
+    if (name.isEmpty) return 'U';
+    final parts = name.trim().split(' ');
+    if (parts.length > 1) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return parts[0][0].toUpperCase();
+  }
+
+  Widget _buildClientUserBubble(ReportModel report, bool isDark) {
+    final name = report.targetName ?? 'Пользователь';
+    final initials = _getInitials(name);
+    final avatarColor = _getAvatarColor(name);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withAlpha(10) : Colors.black.withAlpha(5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(isDark ? 30 : 10),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: avatarColor.withAlpha((0.2 * 255).toInt()),
+              shape: BoxShape.circle,
+              border: Border.all(color: avatarColor, width: 1.5),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              initials,
+              style: TextStyle(
+                color: isDark ? Colors.white : avatarColor.withRed(50).withGreen(50),
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: ThemeTextStyles.bodyLarge(
+                    isDark: isDark,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'ID: ${report.targetId}',
+                  style: ThemeTextStyles.caption(isDark: isDark),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildClientMessageBubble(ReportModel report, bool isDark, BuildContext context) {
+    final senderName = report.targetName ?? 'Пользователь';
+    final initials = _getInitials(senderName);
+    final avatarColor = _getAvatarColor(senderName);
+    final dateStr = report.createdAt != null
+        ? DateFormat('HH:mm').format(report.createdAt!.toLocal())
+        : '';
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Аватар отправителя
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: avatarColor.withAlpha((0.2 * 255).toInt()),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: avatarColor,
+              width: 1.5,
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            initials,
+            style: TextStyle(
+              color: isDark ? Colors.white : avatarColor.withRed(50).withGreen(50),
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        
+        // Облачко сообщения (Bubble)
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: isDark 
+                  ? const Color(0xFF1E293B)
+                  : const Color(0xFFF1F5F9),
+              borderRadius: const BorderRadius.only(
+                topRight: Radius.circular(16),
+                bottomLeft: Radius.circular(16),
+                bottomRight: Radius.circular(16),
+              ),
+              border: Border.all(
+                color: isDark ? Colors.white.withAlpha(15) : Colors.black.withAlpha(10),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(isDark ? 30 : 10),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Имя отправителя
+                Text(
+                  senderName,
+                  style: TextStyle(
+                    color: avatarColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                
+                // Ответ (Reply), если есть
+                if (report.replyToContent != null)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isDark 
+                          ? Colors.white.withAlpha(10)
+                          : Colors.black.withAlpha(5),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border(
+                        left: BorderSide(
+                          color: avatarColor,
+                          width: 3,
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                report.replyToAuthor ?? 'Сообщение',
+                                style: TextStyle(
+                                  color: avatarColor,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                report.replyToContent!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: isDark ? Colors.white60 : Colors.black54,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                // Текст сообщения
+                if (report.reportedContent != null)
+                  Text(
+                    report.reportedContent!,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black87,
+                      fontSize: 15,
+                      height: 1.3,
+                    ),
+                  ),
+                  
+                // Медиа-контент
+                if (report.mediaUrl != null) ...[
+                  const SizedBox(height: 10),
+                  if (report.mediaType?.startsWith('image') ?? false)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: InkWell(
+                        onTap: () => _showMediaDetail(
+                          context,
+                          isDark,
+                          report.mediaUrl!,
+                        ),
+                        child: Image.network(
+                          report.mediaUrl!,
+                          fit: BoxFit.cover,
+                          maxHeight: 250,
+                          width: double.infinity,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(
+                                Icons.broken_image_rounded,
+                                size: 48,
+                                color: Colors.grey,
+                              ),
+                        ),
+                      ),
+                    )
+                  else if (report.mediaType?.startsWith('video') ?? false)
+                    VideoPlayerBubble(
+                      videoUrl: report.mediaUrl!,
+                      maxWidth: double.infinity,
+                    )
+                  else
+                    _buildMediaPlaceholder(
+                      report.mediaType ?? 'file',
+                    ),
+                ],
+                
+                // Время отправки (справа внизу)
+                const SizedBox(height: 4),
+                Align(
+                  alignment: Alignment.bottomRight,
+                  child: Text(
+                    dateStr,
+                    style: TextStyle(
+                      color: isDark ? Colors.white30 : Colors.black38,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
