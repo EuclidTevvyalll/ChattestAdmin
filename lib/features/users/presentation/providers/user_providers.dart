@@ -9,7 +9,10 @@ final userRepositoryProvider = Provider<UserRepository>((ref) {
   return SupabaseUserRepository(client);
 });
 
-final userProfileProvider = FutureProvider.family<ProfileModel?, String>((ref, id) async {
+final userProfileProvider = FutureProvider.family<ProfileModel?, String>((
+  ref,
+  id,
+) async {
   final repository = ref.watch(userRepositoryProvider);
   return repository.getProfile(id);
 });

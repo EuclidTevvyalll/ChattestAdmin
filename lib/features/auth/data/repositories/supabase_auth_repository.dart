@@ -19,7 +19,7 @@ class SupabaseAuthRepository implements AuthRepository {
       email: email,
       password: password,
     );
-    
+
     if (response.user != null) {
       return getProfile(response.user!.id);
     }
@@ -31,12 +31,8 @@ class SupabaseAuthRepository implements AuthRepository {
 
   @override
   Future<ProfileModel?> getProfile(String id) async {
-    final data = await _client
-        .from('profiles')
-        .select()
-        .eq('id', id)
-        .single();
-    
+    final data = await _client.from('profiles').select().eq('id', id).single();
+
     return ProfileModel.fromJson(data);
   }
 }

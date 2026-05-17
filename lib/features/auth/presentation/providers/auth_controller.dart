@@ -10,10 +10,12 @@ class AuthController extends Notifier<AsyncValue<ProfileModel?>> {
   }
 
   void _init() async {
+    await Future.microtask(() {});
     final user = ref.read(authRepositoryProvider).currentUser;
     if (user != null) {
       state = await AsyncValue.guard(
-          () => ref.read(authRepositoryProvider).getProfile(user.id));
+        () => ref.read(authRepositoryProvider).getProfile(user.id),
+      );
     } else {
       state = const AsyncValue.data(null);
     }
@@ -22,13 +24,33 @@ class AuthController extends Notifier<AsyncValue<ProfileModel?>> {
   Future<void> login(String email, String password) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      final profile =
-          await ref.read(authRepositoryProvider).login(email, password);
-      if (profile != null && !profile.isAdmin) {
-        await ref.read(authRepositoryProvider).logout();
-        throw Exception('Access denied: User is not an admin');
+      if (email.trim().isEmpty || password.trim().isEmpty) {
+        throw Exception('Заполните поля');
       }
-      return profile;
+      try {
+        final profile = await ref
+            .read(authRepositoryProvider)
+            .login(email.trim(), password.trim());
+        if (profile == null) {
+          throw Exception('Неверный логин или пароль');
+        }
+        if (!profile.isAdmin) {
+          await ref.read(authRepositoryProvider).logout();
+          throw Exception('У вас нет доступа к программе');
+        }
+        return profile;
+      } catch (e) {
+        final errString = e.toString();
+        if (errString.contains('Access denied') ||
+            errString.contains('User is not an admin') ||
+            errString.contains('У вас нет доступа к программе')) {
+          throw Exception('У вас нет доступа к программе');
+        }
+        if (errString.contains('Заполните поля')) {
+          throw Exception('Заполните поля');
+        }
+        throw Exception('Неверный логин или пароль');
+      }
     });
   }
 
@@ -41,5 +63,5 @@ class AuthController extends Notifier<AsyncValue<ProfileModel?>> {
 
 final authControllerProvider =
     NotifierProvider<AuthController, AsyncValue<ProfileModel?>>(
-  () => AuthController(),
-);
+      () => AuthController(),
+    );

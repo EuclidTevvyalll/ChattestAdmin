@@ -1,11 +1,8 @@
 class StatGroupModel {
   final String label;
-  final int count;
+  final double count;
 
-  const StatGroupModel({
-    required this.label,
-    required this.count,
-  });
+  const StatGroupModel({required this.label, required this.count});
 
   @override
   bool operator ==(Object other) =>

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import '../../../../theme/theme_colors.dart';
+import '../../../../widgets/custom_toast.dart';
 
 class VideoPlayerBubble extends StatefulWidget {
   final String videoUrl;
@@ -29,14 +30,14 @@ class _VideoPlayerBubbleState extends State<VideoPlayerBubble> {
 
   Future<void> _initializeController() async {
     if (widget.videoUrl.isEmpty) return;
-    
+
     try {
       final uri = Uri.parse(widget.videoUrl);
       _controller = VideoPlayerController.networkUrl(uri);
-      
+
       // На Windows инициализация может затянуться или зависнуть, добавим таймаут
       await _controller!.initialize().timeout(const Duration(seconds: 7));
-      
+
       if (mounted) {
         setState(() {
           _isInitialized = true;
@@ -61,19 +62,15 @@ class _VideoPlayerBubbleState extends State<VideoPlayerBubble> {
   void _openFullScreen(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => FullScreenVideoViewer(
-          videoUrl: widget.videoUrl,
-        ),
+        builder: (context) => FullScreenVideoViewer(videoUrl: widget.videoUrl),
       ),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxWidth: widget.maxWidth,
-        maxHeight: 350,
-      ),
+      constraints: BoxConstraints(maxWidth: widget.maxWidth, maxHeight: 350),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: _isInitialized
@@ -153,8 +150,12 @@ class _FullScreenVideoViewerState extends State<FullScreenVideoViewer> {
 
   Future<void> _initializePlayer() async {
     try {
-      _videoPlayerController = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
-      await _videoPlayerController.initialize().timeout(const Duration(seconds: 10));
+      _videoPlayerController = VideoPlayerController.networkUrl(
+        Uri.parse(widget.videoUrl),
+      );
+      await _videoPlayerController.initialize().timeout(
+        const Duration(seconds: 10),
+      );
 
       _chewieController = ChewieController(
         videoPlayerController: _videoPlayerController,
@@ -167,9 +168,7 @@ class _FullScreenVideoViewerState extends State<FullScreenVideoViewer> {
           backgroundColor: Colors.white24,
           bufferedColor: Colors.white38,
         ),
-        placeholder: Container(
-          color: Colors.black,
-        ),
+        placeholder: Container(color: Colors.black),
         autoInitialize: true,
         showOptions: false,
         optionsTranslation: OptionsTranslation(
@@ -181,8 +180,10 @@ class _FullScreenVideoViewerState extends State<FullScreenVideoViewer> {
     } catch (e) {
       debugPrint('CRITICAL: Fullscreen video initialization failed: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка загрузки видео: $e')),
+        CustomToast.show(
+          context,
+          message: 'Ошибка загрузки видео: $e',
+          type: ToastType.error,
         );
       }
     }
@@ -230,7 +231,8 @@ class _FullScreenVideoViewerState extends State<FullScreenVideoViewer> {
         ],
       ),
       body: Center(
-        child: _chewieController != null &&
+        child:
+            _chewieController != null &&
                 _chewieController!.videoPlayerController.value.isInitialized
             ? Chewie(controller: _chewieController!)
             : const CircularProgressIndicator(color: ThemeColors.blue),
@@ -262,16 +264,21 @@ class _FullScreenVideoViewerState extends State<FullScreenVideoViewer> {
                 ),
               ),
             ),
-            ...speeds.map((speed) => ListTile(
-                  title: Text('${speed}x', style: const TextStyle(color: Colors.white)),
-                  trailing: _videoPlayerController.value.playbackSpeed == speed
-                      ? const Icon(Icons.check, color: ThemeColors.blue)
-                      : null,
-                  onTap: () {
-                    _videoPlayerController.setPlaybackSpeed(speed);
-                    Navigator.pop(context);
-                  },
-                )),
+            ...speeds.map(
+              (speed) => ListTile(
+                title: Text(
+                  '${speed}x',
+                  style: const TextStyle(color: Colors.white),
+                ),
+                trailing: _videoPlayerController.value.playbackSpeed == speed
+                    ? const Icon(Icons.check, color: ThemeColors.blue)
+                    : null,
+                onTap: () {
+                  _videoPlayerController.setPlaybackSpeed(speed);
+                  Navigator.pop(context);
+                },
+              ),
+            ),
             const SizedBox(height: 20),
           ],
         ),

@@ -28,18 +28,33 @@ abstract class ThemeTextStyles {
       _base(20, fontWeight ?? FontWeight.w700, color: color, isDark: isDark);
 
   // body main font
-  static TextStyle bodyLarge({Color? color, bool? isDark, FontWeight? fontWeight}) =>
-      _base(18, fontWeight ?? FontWeight.w600, color: color, isDark: isDark);
-  static TextStyle bodyMedium({Color? color, bool? isDark, FontWeight? fontWeight}) =>
-      _base(16, fontWeight ?? FontWeight.w500, color: color, isDark: isDark);
-  static TextStyle bodySmall({Color? color, bool? isDark, FontWeight? fontWeight}) =>
-      _base(14, fontWeight ?? FontWeight.w400, color: color, isDark: isDark);
+  static TextStyle bodyLarge({
+    Color? color,
+    bool? isDark,
+    FontWeight? fontWeight,
+  }) => _base(18, fontWeight ?? FontWeight.w600, color: color, isDark: isDark);
+  static TextStyle bodyMedium({
+    Color? color,
+    bool? isDark,
+    FontWeight? fontWeight,
+  }) => _base(16, fontWeight ?? FontWeight.w500, color: color, isDark: isDark);
+  static TextStyle bodySmall({
+    Color? color,
+    bool? isDark,
+    FontWeight? fontWeight,
+  }) => _base(14, fontWeight ?? FontWeight.w400, color: color, isDark: isDark);
 
   // labels
-  static TextStyle label({Color? color, bool? isDark, FontWeight? fontWeight}) =>
-      _base(12, fontWeight ?? FontWeight.w600, color: color, isDark: isDark);
-  static TextStyle caption({Color? color, bool? isDark, FontWeight? fontWeight}) =>
-      _base(11, fontWeight ?? FontWeight.w400, color: color, isDark: isDark);
+  static TextStyle label({
+    Color? color,
+    bool? isDark,
+    FontWeight? fontWeight,
+  }) => _base(12, fontWeight ?? FontWeight.w600, color: color, isDark: isDark);
+  static TextStyle caption({
+    Color? color,
+    bool? isDark,
+    FontWeight? fontWeight,
+  }) => _base(11, fontWeight ?? FontWeight.w400, color: color, isDark: isDark);
 
   static TextStyle custom({
     required double fontSize,

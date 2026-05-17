@@ -15,9 +15,7 @@ class SupabaseDashboardRepository implements DashboardRepository {
     final twoDaysAgo = now.subtract(const Duration(days: 2));
 
     // 1. Total Users
-    final totalUsers = await _client
-        .from('profiles')
-        .count(CountOption.exact);
+    final totalUsers = await _client.from('profiles').count(CountOption.exact);
 
     // 2. Active Now
     final activeNow = await _client
@@ -52,7 +50,10 @@ class SupabaseDashboardRepository implements DashboardRepository {
         .count(CountOption.exact)
         .gte('created_at', dayAgo.toIso8601String());
 
-    final messageTrend = _calculateTrend(newMessages, 0); // Comparing to 0 for now as an example
+    final messageTrend = _calculateTrend(
+      newMessages,
+      0,
+    ); // Comparing to 0 for now as an example
 
     // 5. Activity Chart (Messages in last 7 days)
     final activityData = <double>[];
@@ -67,15 +68,57 @@ class SupabaseDashboardRepository implements DashboardRepository {
       activityData.add(count.toDouble());
     }
 
+    // 6. Revenue from subscriptions
+    double totalRevenue = 0.0;
+    try {
+      final subscriptionData = await _client
+          .from('subscriptions')
+          .select('amount');
+      for (final item in subscriptionData as List) {
+        final amount = (item['amount'] as num?)?.toDouble() ?? 0.0;
+        totalRevenue += amount;
+      }
+    } catch (e) {
+      // Keep totalRevenue = 0.0
+    }
+
+    // Revenue trend (last 24h vs previous 24h)
+    double newRevenue = 0.0;
+    try {
+      final newSubsData = await _client
+          .from('subscriptions')
+          .select('amount')
+          .gte('created_at', dayAgo.toIso8601String());
+      for (final item in newSubsData as List) {
+        final amount = (item['amount'] as num?)?.toDouble() ?? 0.0;
+        newRevenue += amount;
+      }
+    } catch (_) {}
+
+    double prevNewRevenue = 0.0;
+    try {
+      final prevSubsData = await _client
+          .from('subscriptions')
+          .select('amount')
+          .gte('created_at', twoDaysAgo.toIso8601String())
+          .lt('created_at', dayAgo.toIso8601String());
+      for (final item in prevSubsData as List) {
+        final amount = (item['amount'] as num?)?.toDouble() ?? 0.0;
+        prevNewRevenue += amount;
+      }
+    } catch (_) {}
+
+    final revenueTrend = _calculateTrend(newRevenue, prevNewRevenue);
+
     return DashboardStats(
       totalUsers: totalUsers,
       activeNow: activeNow,
       totalMessages: totalMessages,
-      revenue: 0.0, // Mocked as no revenue table found
+      revenue: totalRevenue,
       userTrend: userTrend,
       activeTrend: '+0%', // Mocked
       messageTrend: messageTrend,
-      revenueTrend: '+0%', // Mocked
+      revenueTrend: revenueTrend,
       activityData: activityData,
     );
   }
@@ -91,8 +134,8 @@ class SupabaseDashboardRepository implements DashboardRepository {
     return (data as List).map((json) => ProfileModel.fromJson(json)).toList();
   }
 
-  String _calculateTrend(int current, int previous) {
-    if (previous == 0) return current > 0 ? '+$current' : '0%';
+  String _calculateTrend(num current, num previous) {
+    if (previous == 0) return current > 0 ? '+${current.toInt()}' : '0%';
     final diff = ((current - previous) / previous * 100).toStringAsFixed(0);
     return current >= previous ? '+$diff%' : '$diff%';
   }

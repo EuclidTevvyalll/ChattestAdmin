@@ -8,7 +8,8 @@ enum StatGroupType {
   reportsByStatus('Жалобы по статусу'),
   reportsByReason('Жалобы по причине'),
   usersByStatus('Пользователи по статусу'),
-  roomsByType('Чаты по типу');
+  roomsByType('Чаты по типу'),
+  revenueByMonth('Выручка по месяцам');
 
   final String label;
   const StatGroupType(this.label);
@@ -37,7 +38,8 @@ class StatGroupTypeNotifier extends Notifier<StatGroupType> {
 
 final statGroupTypeProvider =
     NotifierProvider<StatGroupTypeNotifier, StatGroupType>(
-        () => StatGroupTypeNotifier());
+      () => StatGroupTypeNotifier(),
+    );
 
 class StatSortTypeNotifier extends Notifier<StatSortType> {
   @override
@@ -48,7 +50,8 @@ class StatSortTypeNotifier extends Notifier<StatSortType> {
 
 final statSortTypeProvider =
     NotifierProvider<StatSortTypeNotifier, StatSortType>(
-        () => StatSortTypeNotifier());
+      () => StatSortTypeNotifier(),
+    );
 
 final statisticsProvider = FutureProvider<List<StatGroupModel>>((ref) async {
   final repository = ref.watch(statisticsRepositoryProvider);
@@ -69,6 +72,9 @@ final statisticsProvider = FutureProvider<List<StatGroupModel>>((ref) async {
       break;
     case StatGroupType.roomsByType:
       data = await repository.getRoomsByType();
+      break;
+    case StatGroupType.revenueByMonth:
+      data = await repository.getRevenueByMonth();
       break;
   }
 

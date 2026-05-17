@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/models/stat_group_model.dart';
 import '../../domain/repositories/statistics_repository.dart';
@@ -17,17 +18,22 @@ class SupabaseStatisticsRepository implements StatisticsRepository {
           .from('reports')
           .count(CountOption.exact)
           .eq('status', status);
-      results.add(StatGroupModel(
-        label: _formatStatus(status),
-        count: count,
-      ));
+      results.add(
+        StatGroupModel(label: _formatStatus(status), count: count.toDouble()),
+      );
     }
     return results;
   }
 
   @override
   Future<List<StatGroupModel>> getReportsByReason() async {
-    final reasons = ['spam', 'harassment', 'violence', 'inappropriate', 'other'];
+    final reasons = [
+      'spam',
+      'harassment',
+      'violence',
+      'inappropriate',
+      'other',
+    ];
     final results = <StatGroupModel>[];
 
     for (final reason in reasons) {
@@ -35,10 +41,9 @@ class SupabaseStatisticsRepository implements StatisticsRepository {
           .from('reports')
           .count(CountOption.exact)
           .eq('reason', reason);
-      results.add(StatGroupModel(
-        label: _formatReason(reason),
-        count: count,
-      ));
+      results.add(
+        StatGroupModel(label: _formatReason(reason), count: count.toDouble()),
+      );
     }
     return results;
   }
@@ -61,9 +66,9 @@ class SupabaseStatisticsRepository implements StatisticsRepository {
         .eq('is_banned', true);
 
     return [
-      StatGroupModel(label: 'В сети', count: onlineRes),
-      StatGroupModel(label: 'Не в сети', count: offlineRes),
-      StatGroupModel(label: 'Заблокирован', count: bannedRes),
+      StatGroupModel(label: 'В сети', count: onlineRes.toDouble()),
+      StatGroupModel(label: 'Не в сети', count: offlineRes.toDouble()),
+      StatGroupModel(label: 'Заблокирован', count: bannedRes.toDouble()),
     ];
   }
 
@@ -77,12 +82,64 @@ class SupabaseStatisticsRepository implements StatisticsRepository {
           .from('rooms')
           .count(CountOption.exact)
           .eq('type', type);
-      results.add(StatGroupModel(
-        label: _formatRoomType(type),
-        count: count,
-      ));
+      results.add(
+        StatGroupModel(label: _formatRoomType(type), count: count.toDouble()),
+      );
     }
     return results;
+  }
+
+  @override
+  Future<List<StatGroupModel>> getRevenueByMonth() async {
+    try {
+      final response = await _client
+          .from('subscriptions')
+          .select('amount, created_at');
+
+      final Map<String, double> revenueByMonth = {};
+
+      for (final item in response as List) {
+        final createdAt = DateTime.parse(item['created_at'] as String);
+        final monthKey =
+            '${createdAt.year}-${createdAt.month.toString().padLeft(2, '0')}';
+        final amount = (item['amount'] as num).toDouble();
+
+        revenueByMonth[monthKey] = (revenueByMonth[monthKey] ?? 0) + amount;
+      }
+
+      final sortedKeys = revenueByMonth.keys.toList()..sort();
+
+      return sortedKeys.map((key) {
+        final parts = key.split('-');
+        final year = parts[0];
+        final month = _getMonthName(int.parse(parts[1]));
+        return StatGroupModel(
+          label: '$month $year',
+          count: revenueByMonth[key]!,
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('Supabase: Error fetching revenue: $e');
+      return [];
+    }
+  }
+
+  String _getMonthName(int month) {
+    const months = [
+      'Янв',
+      'Фев',
+      'Мар',
+      'Апр',
+      'Май',
+      'Июн',
+      'Июл',
+      'Авг',
+      'Сен',
+      'Окт',
+      'Ноя',
+      'Дек',
+    ];
+    return months[month - 1];
   }
 
   String _capitalize(String s) =>
@@ -90,30 +147,44 @@ class SupabaseStatisticsRepository implements StatisticsRepository {
 
   String _formatReason(String s) {
     switch (s) {
-      case 'spam': return 'Спам';
-      case 'harassment': return 'Оскорбление';
-      case 'violence': return 'Насилие';
-      case 'inappropriate': return 'Неприемлемый контент';
-      case 'other': return 'Другое';
-      default: return _capitalize(s);
+      case 'spam':
+        return 'Спам';
+      case 'harassment':
+        return 'Оскорбление';
+      case 'violence':
+        return 'Насилие';
+      case 'inappropriate':
+        return 'Неприемлемый контент';
+      case 'other':
+        return 'Другое';
+      default:
+        return _capitalize(s);
     }
   }
 
   String _formatStatus(String s) {
     switch (s) {
-      case 'pending': return 'Ожидает';
-      case 'resolved': return 'Решено';
-      case 'dismissed': return 'Отклонено';
-      default: return _capitalize(s);
+      case 'pending':
+        return 'Ожидает';
+      case 'resolved':
+        return 'Решено';
+      case 'dismissed':
+        return 'Отклонено';
+      default:
+        return _capitalize(s);
     }
   }
 
   String _formatRoomType(String s) {
     switch (s) {
-      case 'direct': return 'Личные сообщения';
-      case 'group': return 'Группа';
-      case 'channel': return 'Канал';
-      default: return _capitalize(s);
+      case 'direct':
+        return 'Личные сообщения';
+      case 'group':
+        return 'Группа';
+      case 'channel':
+        return 'Канал';
+      default:
+        return _capitalize(s);
     }
   }
 }

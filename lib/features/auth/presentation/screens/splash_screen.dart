@@ -12,10 +12,7 @@ class SplashScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(
-              color: ThemeColors.blue,
-              strokeWidth: 3,
-            ),
+            CircularProgressIndicator(color: ThemeColors.blue, strokeWidth: 3),
             SizedBox(height: 24),
             Text(
               'ForgeLink Admin',

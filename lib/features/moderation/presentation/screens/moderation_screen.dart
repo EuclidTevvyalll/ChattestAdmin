@@ -9,6 +9,7 @@ import '../../../../theme/text_theme.dart';
 import '../../../../widgets/glass_box.dart';
 import '../../domain/models/report_model.dart';
 import '../providers/moderation_providers.dart';
+import '../../../../widgets/custom_toast.dart';
 
 class ModerationScreen extends HookConsumerWidget {
   const ModerationScreen({super.key});
@@ -18,19 +19,19 @@ class ModerationScreen extends HookConsumerWidget {
     final reportsAsync = ref.watch(reportsProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final selectedReport = useState<ReportModel?>(null);
-    final filterStatus = useState<String>('pending'); // 'all', 'pending', 'handled'
+    final filterStatus = useState<String>(
+      'pending',
+    ); // 'all', 'pending', 'handled'
 
     // Слушаем ошибки контроллера
     ref.listen<AsyncValue<void>>(moderationControllerProvider, (prev, next) {
       next.when(
         data: (_) {},
         error: (err, stack) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Ошибка выполнения: $err'),
-              backgroundColor: Colors.redAccent,
-              behavior: SnackBarBehavior.floating,
-            ),
+          CustomToast.show(
+            context,
+            message: 'Ошибка выполнения: $err',
+            type: ToastType.error,
           );
         },
         loading: () {},
@@ -51,7 +52,10 @@ class ModerationScreen extends HookConsumerWidget {
                   children: [
                     Row(
                       children: [
-                        Text('Модерация контента', style: ThemeTextStyles.h1(isDark: isDark)),
+                        Text(
+                          'Модерация контента',
+                          style: ThemeTextStyles.h1(isDark: isDark),
+                        ),
                         const Spacer(),
                         IconButton(
                           icon: const Icon(Icons.refresh_rounded),
@@ -92,16 +96,26 @@ class ModerationScreen extends HookConsumerWidget {
                   data: (reports) {
                     // Фильтрация
                     var filtered = reports.where((r) {
-                      if (filterStatus.value == 'pending') return r.status == 'pending';
-                      if (filterStatus.value == 'handled') return r.status != 'pending';
+                      if (filterStatus.value == 'pending') {
+                        return r.status == 'pending';
+                      }
+                      if (filterStatus.value == 'handled') {
+                        return r.status != 'pending';
+                      }
                       return true;
                     }).toList();
 
                     // Сортировка: сначала pending, затем по дате
                     filtered.sort((a, b) {
-                      if (a.status == 'pending' && b.status != 'pending') return -1;
-                      if (a.status != 'pending' && b.status == 'pending') return 1;
-                      return (b.createdAt ?? DateTime.now()).compareTo(a.createdAt ?? DateTime.now());
+                      if (a.status == 'pending' && b.status != 'pending') {
+                        return -1;
+                      }
+                      if (a.status != 'pending' && b.status == 'pending') {
+                        return 1;
+                      }
+                      return (b.createdAt ?? DateTime.now()).compareTo(
+                        a.createdAt ?? DateTime.now(),
+                      );
                     });
 
                     if (filtered.isEmpty) {
@@ -109,11 +123,19 @@ class ModerationScreen extends HookConsumerWidget {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.filter_list_off_rounded, 
-                                 size: 64, color: isDark ? Colors.white24 : Colors.black26),
+                            Icon(
+                              Icons.filter_list_off_rounded,
+                              size: 64,
+                              color: isDark ? Colors.white24 : Colors.black26,
+                            ),
                             const SizedBox(height: 16),
-                            Text('В этой категории ничего не найдено', 
-                                 style: ThemeTextStyles.bodyLarge(isDark: isDark, color: isDark ? Colors.white38 : Colors.black38)),
+                            Text(
+                              'В этой категории ничего не найдено',
+                              style: ThemeTextStyles.bodyLarge(
+                                isDark: isDark,
+                                color: isDark ? Colors.white38 : Colors.black38,
+                              ),
+                            ),
                           ],
                         ),
                       );
@@ -127,14 +149,15 @@ class ModerationScreen extends HookConsumerWidget {
                       ),
                     );
                   },
-                  loading: () => const Center(child: CircularProgressIndicator()),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
                   error: (err, _) => Center(child: Text('Ошибка: $err')),
                 ),
               ),
             ],
           ),
         ),
-        
+
         // Внутреннее модальное окно (Overlay)
         if (selectedReport.value != null)
           Positioned.fill(
@@ -143,11 +166,17 @@ class ModerationScreen extends HookConsumerWidget {
               child: Container(
                 color: Colors.black.withAlpha(100),
                 alignment: Alignment.center,
-                child: GestureDetector(
-                  onTap: () {}, // Предотвращаем закрытие при клике на само окно
-                  child: _ReportDetailView(
-                    report: selectedReport.value!,
-                    onClose: () => selectedReport.value = null,
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: SafeArea(
+                  child: GestureDetector(
+                    onTap:
+                        () {}, // Предотвращаем закрытие при клике на само окно
+                    child: _ReportDetailView(
+                      report: selectedReport.value!,
+                      onClose: () => selectedReport.value = null,
+                    ),
                   ),
                 ),
               ),
@@ -166,8 +195,8 @@ class _ReportCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final date = report.createdAt != null 
-        ? DateFormat('dd.MM.yyyy HH:mm').format(report.createdAt!.toLocal()) 
+    final date = report.createdAt != null
+        ? DateFormat('dd.MM.yyyy HH:mm').format(report.createdAt!.toLocal())
         : '';
 
     return Padding(
@@ -197,9 +226,18 @@ class _ReportCard extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildInfoLabel('Отправитель', report.reporterName ?? 'ID: ${report.reporterId}', isDark),
+                        _buildInfoLabel(
+                          'Отправитель',
+                          report.reporterName ?? 'ID: ${report.reporterId}',
+                          isDark,
+                        ),
                         const SizedBox(height: 16),
-                        _buildInfoLabel('Причина', report.localizedReason, isDark, isBold: true),
+                        _buildInfoLabel(
+                          'Причина',
+                          report.localizedReason,
+                          isDark,
+                          isBold: true,
+                        ),
                       ],
                     ),
                   ),
@@ -209,17 +247,23 @@ class _ReportCard extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildInfoLabel(
-                          report.targetType == 'user' ? 'Цель (Пользователь)' : 'Цель (Сообщение от)', 
-                          report.targetName ?? 'ID: ${report.targetId}', 
-                          isDark
+                          report.targetType == 'user'
+                              ? 'Цель (Пользователь)'
+                              : 'Цель (Сообщение от)',
+                          report.targetName ?? 'ID: ${report.targetId}',
+                          isDark,
                         ),
-                        if (report.targetType == 'message' && report.reportedContent != null) ...[
+                        if (report.targetType == 'message' &&
+                            report.reportedContent != null) ...[
                           const SizedBox(height: 12),
                           Text(
                             report.reportedContent!,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: ThemeTextStyles.bodySmall(isDark: isDark, color: isDark ? Colors.white54 : Colors.black54),
+                            style: ThemeTextStyles.bodySmall(
+                              isDark: isDark,
+                              color: isDark ? Colors.white54 : Colors.black54,
+                            ),
                           ),
                         ],
                       ],
@@ -244,11 +288,15 @@ class _ReportDetailView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
+    final size = MediaQuery.of(context).size;
+    final viewInsets = MediaQuery.of(context).viewInsets;
+    final availableHeight = size.height - viewInsets.bottom - 100;
+
     return ConstrainedBox(
       constraints: BoxConstraints(
         maxWidth: 700,
-        maxHeight: MediaQuery.of(context).size.height * 0.9,
+        maxHeight: availableHeight.clamp(300.0, size.height * 0.9),
       ),
       child: GlassBox(
         padding: const EdgeInsets.all(32),
@@ -258,18 +306,18 @@ class _ReportDetailView extends ConsumerWidget {
           children: [
             Row(
               children: [
-                Text('Детали жалобы', style: ThemeTextStyles.h2(isDark: isDark)),
+                Text(
+                  'Детали жалобы',
+                  style: ThemeTextStyles.h2(isDark: isDark),
+                ),
                 const Spacer(),
                 _buildStatusBadge(report.status),
                 const SizedBox(width: 12),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: onClose,
-                ),
+                IconButton(icon: const Icon(Icons.close), onPressed: onClose),
               ],
             ),
             const Divider(height: 40),
-            
+
             // Прокручиваемая часть
             Flexible(
               child: SingleChildScrollView(
@@ -282,98 +330,161 @@ class _ReportDetailView extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          child: _buildInfoLabel('Отправитель', report.reporterName ?? report.reporterId, isDark),
-                        ),
-                        Expanded(
-                          child: _buildInfoLabel('Тип нарушения', report.localizedReason, isDark, isBold: true),
+                          child: _buildInfoLabel(
+                            'Отправитель',
+                            report.reporterName ?? report.reporterId,
+                            isDark,
+                          ),
                         ),
                         Expanded(
                           child: _buildInfoLabel(
-                            'Дата подачи', 
-                            report.createdAt != null ? DateFormat('dd.MM.yyyy HH:mm').format(report.createdAt!.toLocal()) : 'Неизвестно', 
-                            isDark
+                            'Тип нарушения',
+                            report.localizedReason,
+                            isDark,
+                            isBold: true,
+                          ),
+                        ),
+                        Expanded(
+                          child: _buildInfoLabel(
+                            'Дата подачи',
+                            report.createdAt != null
+                                ? DateFormat(
+                                    'dd.MM.yyyy HH:mm',
+                                  ).format(report.createdAt!.toLocal())
+                                : 'Неизвестно',
+                            isDark,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 24),
-                    if (report.details != null && report.details!.isNotEmpty) ...[
-                      _buildInfoLabel('Дополнительные детали', report.details!, isDark),
+                    if (report.details != null &&
+                        report.details!.isNotEmpty) ...[
+                      _buildInfoLabel(
+                        'Дополнительные детали',
+                        report.details!,
+                        isDark,
+                      ),
                       const SizedBox(height: 24),
                     ],
-                    
+
                     // Информация о цели
-                    Text(report.targetType == 'user' ? 'Профиль нарушителя' : 'Контент нарушения', 
-                         style: ThemeTextStyles.caption(isDark: isDark)),
+                    Text(
+                      report.targetType == 'user'
+                          ? 'Профиль нарушителя'
+                          : 'Контент нарушения',
+                      style: ThemeTextStyles.caption(isDark: isDark),
+                    ),
                     const SizedBox(height: 12),
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: isDark ? Colors.white.withAlpha(10) : Colors.black.withAlpha(5),
+                        color: isDark
+                            ? Colors.white.withAlpha(10)
+                            : Colors.black.withAlpha(5),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
+                        border: Border.all(
+                          color: isDark ? Colors.white10 : Colors.black12,
+                        ),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(report.targetName ?? report.targetId, 
-                               style: ThemeTextStyles.bodyLarge(isDark: isDark, fontWeight: FontWeight.bold)),
-                          if (report.targetType == 'message' && report.reportedContent != null) ...[
+                          Text(
+                            report.targetName ?? report.targetId,
+                            style: ThemeTextStyles.bodyLarge(
+                              isDark: isDark,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          if (report.targetType == 'message' &&
+                              report.reportedContent != null) ...[
                             const SizedBox(height: 12),
-                            
+
                             // Если это ответ (Reply)
                             if (report.replyToContent != null)
                               Container(
                                 margin: const EdgeInsets.only(bottom: 12),
                                 padding: const EdgeInsets.only(left: 12),
                                 decoration: const BoxDecoration(
-                                  border: Border(left: BorderSide(color: ThemeColors.blue, width: 3)),
+                                  border: Border(
+                                    left: BorderSide(
+                                      color: ThemeColors.blue,
+                                      width: 3,
+                                    ),
+                                  ),
                                 ),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(report.replyToAuthor ?? 'Автор', 
-                                         style: ThemeTextStyles.caption(isDark: isDark, color: ThemeColors.blue)),
+                                    Text(
+                                      report.replyToAuthor ?? 'Автор',
+                                      style: ThemeTextStyles.caption(
+                                        isDark: isDark,
+                                        color: ThemeColors.blue,
+                                      ),
+                                    ),
                                     const SizedBox(height: 4),
                                     Text(
                                       report.replyToContent!,
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
-                                      style: ThemeTextStyles.bodySmall(isDark: isDark, color: isDark ? Colors.white54 : Colors.black54),
+                                      style: ThemeTextStyles.bodySmall(
+                                        isDark: isDark,
+                                        color: isDark
+                                            ? Colors.white54
+                                            : Colors.black54,
+                                      ),
                                     ),
                                   ],
                                 ),
                               ),
-        
+
                             // Текст сообщения
-                            Text(report.reportedContent!, style: ThemeTextStyles.bodyMedium(isDark: isDark)),
-                            
+                            Text(
+                              report.reportedContent!,
+                              style: ThemeTextStyles.bodyMedium(isDark: isDark),
+                            ),
+
                             // Медиа контент
                             if (report.mediaUrl != null) ...[
                               const SizedBox(height: 16),
-                              if (report.mediaType?.startsWith('image') ?? false)
+                              if (report.mediaType?.startsWith('image') ??
+                                  false)
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
                                   child: InkWell(
-                                    onTap: () => _showMediaDetail(context, isDark, report.mediaUrl!),
+                                    onTap: () => _showMediaDetail(
+                                      context,
+                                      isDark,
+                                      report.mediaUrl!,
+                                    ),
                                     child: Image.network(
                                       report.mediaUrl!,
                                       width: 300,
                                       height: 300,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) => 
-                                        const Icon(Icons.broken_image_rounded, size: 48, color: Colors.grey),
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              const Icon(
+                                                Icons.broken_image_rounded,
+                                                size: 48,
+                                                color: Colors.grey,
+                                              ),
                                     ),
                                   ),
                                 )
-                              else if (report.mediaType?.startsWith('video') ?? false)
+                              else if (report.mediaType?.startsWith('video') ??
+                                  false)
                                 VideoPlayerBubble(
                                   videoUrl: report.mediaUrl!,
                                   maxWidth: 300,
                                 )
                               else
-                                _buildMediaPlaceholder(report.mediaType ?? 'file'),
+                                _buildMediaPlaceholder(
+                                  report.mediaType ?? 'file',
+                                ),
                             ],
                           ],
                         ],
@@ -385,7 +496,7 @@ class _ReportDetailView extends ConsumerWidget {
             ),
 
             const Divider(height: 40),
-            
+
             // Кнопки действий
             if (report.status == 'pending')
               Column(
@@ -397,30 +508,39 @@ class _ReportDetailView extends ConsumerWidget {
                       if (report.targetType == 'message')
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: () => ref.read(moderationControllerProvider.notifier).deleteMessage(report.id, report.targetId).then((_) => onClose()),
+                            onPressed: () => ref
+                                .read(moderationControllerProvider.notifier)
+                                .deleteMessage(report.id, report.targetId)
+                                .then((_) => onClose()),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.orange,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
-                            child: const Text('Удалить сообщение'),
+                            child: const FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text('Удалить сообщение'),
+                            ),
                           ),
                         ),
-                      if (report.targetType == 'message') const SizedBox(width: 16),
-                      
+                      if (report.targetType == 'message')
+                        const SizedBox(width: 16),
+
                       // Действие: Заблокировать пользователя
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () {
-                            final targetUserId = report.targetType == 'user' 
-                                ? report.targetId 
+                            final targetUserId = report.targetType == 'user'
+                                ? report.targetId
                                 : report.targetAuthorId;
-                            
+
                             if (targetUserId == null) return;
 
                             _showBlockDurationDialog(
-                              context, 
+                              context,
                               report.id,
                               targetUserId,
                               report.localizedReason,
@@ -432,9 +552,14 @@ class _ReportDetailView extends ConsumerWidget {
                             backgroundColor: Colors.red,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
-                          child: const Text('Заблокировать нарушителя'),
+                          child: const FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text('Заблокировать нарушителя'),
+                          ),
                         ),
                       ),
                     ],
@@ -444,13 +569,25 @@ class _ReportDetailView extends ConsumerWidget {
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () => ref.read(moderationControllerProvider.notifier).updateStatus(report.id, 'dismissed').then((_) => onClose()),
+                          onPressed: () => ref
+                              .read(moderationControllerProvider.notifier)
+                              .updateStatus(report.id, 'dismissed')
+                              .then((_) => onClose()),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            side: BorderSide(color: isDark ? Colors.white24 : Colors.black26),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            side: BorderSide(
+                              color: isDark ? Colors.white24 : Colors.black26,
+                            ),
                           ),
-                          child: Text('Отклонить жалобу', style: TextStyle(color: isDark ? Colors.white70 : Colors.black87)),
+                          child: Text(
+                            'Отклонить жалобу',
+                            style: TextStyle(
+                              color: isDark ? Colors.white70 : Colors.black87,
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -460,7 +597,10 @@ class _ReportDetailView extends ConsumerWidget {
             else
               Center(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.green.withAlpha(20),
                     borderRadius: BorderRadius.circular(20),
@@ -469,9 +609,19 @@ class _ReportDetailView extends ConsumerWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.check_circle_outline, color: Colors.green, size: 20),
+                      const Icon(
+                        Icons.check_circle_outline,
+                        color: Colors.green,
+                        size: 20,
+                      ),
                       const SizedBox(width: 8),
-                      Text('Обработано', style: ThemeTextStyles.bodyMedium(isDark: isDark, color: Colors.green)),
+                      Text(
+                        'Обработано',
+                        style: ThemeTextStyles.bodyMedium(
+                          isDark: isDark,
+                          color: Colors.green,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -511,9 +661,7 @@ class _ReportDetailView extends ConsumerWidget {
                     mediaUrl,
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) return child;
-                      return const Center(
-                        child: CircularProgressIndicator(),
-                      );
+                      return const Center(child: CircularProgressIndicator());
                     },
                     errorBuilder: (context, error, stackTrace) => const Icon(
                       Icons.broken_image,
@@ -528,23 +676,77 @@ class _ReportDetailView extends ConsumerWidget {
     );
   }
 
-  void _showBlockDurationDialog(BuildContext context, String reportId, String userId, String reason, WidgetRef ref, VoidCallback onClose) {
+  void _showBlockDurationDialog(
+    BuildContext context,
+    String reportId,
+    String userId,
+    String reason,
+    WidgetRef ref,
+    VoidCallback onClose,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Заблокировать пользователя?'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Выберите продолжительность блокировки:'),
-            const SizedBox(height: 16),
-            _buildDurationOption(context, 'На 1 час', const Duration(hours: 1), reportId, userId, reason, ref, onClose),
-            _buildDurationOption(context, 'На 1 день', const Duration(days: 1), reportId, userId, reason, ref, onClose),
-            _buildDurationOption(context, 'На 1 неделю', const Duration(days: 7), reportId, userId, reason, ref, onClose),
-            _buildDurationOption(context, 'На 1 месяц', const Duration(days: 30), reportId, userId, reason, ref, onClose),
-            _buildDurationOption(context, 'Навсегда', null, reportId, userId, reason, ref, onClose),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Выберите продолжительность блокировки:'),
+              const SizedBox(height: 16),
+              _buildDurationOption(
+                context,
+                'На 1 час',
+                const Duration(hours: 1),
+                reportId,
+                userId,
+                reason,
+                ref,
+                onClose,
+              ),
+              _buildDurationOption(
+                context,
+                'На 1 день',
+                const Duration(days: 1),
+                reportId,
+                userId,
+                reason,
+                ref,
+                onClose,
+              ),
+              _buildDurationOption(
+                context,
+                'На 1 неделю',
+                const Duration(days: 7),
+                reportId,
+                userId,
+                reason,
+                ref,
+                onClose,
+              ),
+              _buildDurationOption(
+                context,
+                'На 1 месяц',
+                const Duration(days: 30),
+                reportId,
+                userId,
+                reason,
+                ref,
+                onClose,
+              ),
+              _buildDurationOption(
+                context,
+                'Навсегда',
+                null,
+                reportId,
+                userId,
+                reason,
+                ref,
+                onClose,
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -556,11 +758,22 @@ class _ReportDetailView extends ConsumerWidget {
     );
   }
 
-  Widget _buildDurationOption(BuildContext context, String label, Duration? duration, String reportId, String userId, String reason, WidgetRef ref, VoidCallback onClose) {
+  Widget _buildDurationOption(
+    BuildContext context,
+    String label,
+    Duration? duration,
+    String reportId,
+    String userId,
+    String reason,
+    WidgetRef ref,
+    VoidCallback onClose,
+  ) {
     return InkWell(
       onTap: () {
         Navigator.pop(context); // Закрыть диалог
-        ref.read(moderationControllerProvider.notifier).blockUser(reportId, userId, duration: duration, reason: reason);
+        ref
+            .read(moderationControllerProvider.notifier)
+            .blockUser(reportId, userId, duration: duration, reason: reason);
         onClose(); // Закрыть окно деталей
       },
       child: Padding(
@@ -577,13 +790,24 @@ class _ReportDetailView extends ConsumerWidget {
   }
 }
 
-Widget _buildInfoLabel(String label, String value, bool isDark, {bool isBold = false}) {
+Widget _buildInfoLabel(
+  String label,
+  String value,
+  bool isDark, {
+  bool isBold = false,
+}) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text(label, style: ThemeTextStyles.caption(isDark: isDark)),
       const SizedBox(height: 4),
-      Text(value, style: ThemeTextStyles.bodyMedium(isDark: isDark, fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
+      Text(
+        value,
+        style: ThemeTextStyles.bodyMedium(
+          isDark: isDark,
+          fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
     ],
   );
 }
@@ -591,7 +815,7 @@ Widget _buildInfoLabel(String label, String value, bool isDark, {bool isBold = f
 Widget _buildMediaPlaceholder(String type) {
   IconData icon;
   String label;
-  
+
   if (type.startsWith('video')) {
     icon = Icons.play_circle_outline_rounded;
     label = 'Видео';
@@ -690,26 +914,34 @@ class _FilterChip extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected 
-              ? ThemeColors.blue 
-              : (isDark ? Colors.white.withAlpha(10) : Colors.black.withAlpha(5)),
+          color: isSelected
+              ? ThemeColors.blue
+              : (isDark
+                    ? Colors.white.withAlpha(10)
+                    : Colors.black.withAlpha(5)),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? ThemeColors.blue : (isDark ? Colors.white10 : Colors.black12),
+            color: isSelected
+                ? ThemeColors.blue
+                : (isDark ? Colors.white10 : Colors.black12),
           ),
-          boxShadow: isSelected ? [
-            BoxShadow(
-              color: ThemeColors.blue.withAlpha(80),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            )
-          ] : null,
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: ThemeColors.blue.withAlpha(80),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
         ),
         child: Text(
           label,
           style: ThemeTextStyles.bodySmall(
-            isDark: isDark, 
-            color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+            isDark: isDark,
+            color: isSelected
+                ? Colors.white
+                : (isDark ? Colors.white70 : Colors.black87),
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
@@ -719,5 +951,6 @@ class _FilterChip extends StatelessWidget {
 }
 
 extension RoundedRectangle on RoundedRectangleBorder {
-  static RoundedRectangleBorder circular(double radius) => RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius));
+  static RoundedRectangleBorder circular(double radius) =>
+      RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius));
 }

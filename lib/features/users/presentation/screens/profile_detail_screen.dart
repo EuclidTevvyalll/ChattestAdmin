@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../theme/theme_colors.dart';
 import '../../../../theme/text_theme.dart';
 import '../../../../widgets/glass_box.dart';
 import '../providers/user_providers.dart';
+import '../../../../core/models/profile_model.dart';
+import '../../../../widgets/custom_toast.dart';
 
 class ProfileDetailScreen extends ConsumerWidget {
   final String userId;
 
-  const ProfileDetailScreen({
-    super.key,
-    required this.userId,
-  });
+  const ProfileDetailScreen({super.key, required this.userId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -26,11 +26,28 @@ class ProfileDetailScreen extends ConsumerWidget {
         elevation: 0,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
-        title: Text('Детали профиля', style: ThemeTextStyles.h3(isDark: isDark)),
+        title: Text(
+          'Детали профиля',
+          style: ThemeTextStyles.h3(isDark: isDark),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/');
+            }
+          },
         ),
+        actions: [
+          if (userAsync.hasValue && userAsync.value != null)
+            IconButton(
+              icon: const Icon(Icons.edit_rounded),
+              onPressed: () => _showEditDialog(context, ref, userAsync.value!),
+            ),
+          const SizedBox(width: 16),
+        ],
       ),
       body: userAsync.when(
         data: (user) {
@@ -54,7 +71,12 @@ class ProfileDetailScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: _buildMainInfo(context, user, formattedDate, isDark),
+                      child: _buildMainInfo(
+                        context,
+                        user,
+                        formattedDate,
+                        isDark,
+                      ),
                     ),
                   ],
                 ),
@@ -81,7 +103,10 @@ class ProfileDetailScreen extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: ThemeColors.blue.withAlpha(30),
                 shape: BoxShape.circle,
-                border: Border.all(color: ThemeColors.blue.withAlpha(50), width: 2),
+                border: Border.all(
+                  color: ThemeColors.blue.withAlpha(50),
+                  width: 2,
+                ),
                 image: user.avatarUrl != null
                     ? DecorationImage(
                         image: NetworkImage(user.avatarUrl!),
@@ -108,11 +133,16 @@ class ProfileDetailScreen extends ConsumerWidget {
                     const SizedBox(width: 16),
                     if (user.isAdmin)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: ThemeColors.blue.withAlpha(40),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: ThemeColors.blue.withAlpha(100)),
+                          border: Border.all(
+                            color: ThemeColors.blue.withAlpha(100),
+                          ),
                         ),
                         child: Text(
                           'ADMIN',
@@ -184,20 +214,43 @@ class ProfileDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildMainInfo(BuildContext context, dynamic user, String date, bool isDark) {
+  Widget _buildMainInfo(
+    BuildContext context,
+    dynamic user,
+    String date,
+    bool isDark,
+  ) {
     return GlassBox(
       padding: const EdgeInsets.all(32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Основная информация', style: ThemeTextStyles.h3(isDark: isDark)),
+          Text(
+            'Основная информация',
+            style: ThemeTextStyles.h3(isDark: isDark),
+          ),
           const SizedBox(height: 32),
-          _buildInfoRow('Имя пользователя', user.username, Icons.alternate_email, isDark),
-          _buildInfoRow('Отображаемое имя', user.nickname ?? 'Не задано', Icons.face, isDark),
+          _buildInfoRow(
+            'Имя пользователя',
+            user.username,
+            Icons.alternate_email,
+            isDark,
+          ),
+          _buildInfoRow(
+            'Отображаемое имя',
+            user.nickname ?? 'Не задано',
+            Icons.face,
+            isDark,
+          ),
           _buildInfoRow('Дата регистрации', date, Icons.calendar_today, isDark),
-          _buildInfoRow('Последнее обновление', 
-            user.updatedAt != null ? DateFormat('dd.MM.yyyy').format(user.updatedAt!) : 'Нет данных', 
-            Icons.update, isDark),
+          _buildInfoRow(
+            'Последнее обновление',
+            user.updatedAt != null
+                ? DateFormat('dd.MM.yyyy').format(user.updatedAt!)
+                : 'Нет данных',
+            Icons.update,
+            isDark,
+          ),
         ],
       ),
     );
@@ -211,7 +264,9 @@ class ProfileDetailScreen extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withAlpha(12) : Colors.black.withAlpha(12),
+              color: isDark
+                  ? Colors.white.withAlpha(12)
+                  : Colors.black.withAlpha(12),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, size: 20, color: ThemeColors.blue),
@@ -222,11 +277,122 @@ class ProfileDetailScreen extends ConsumerWidget {
             children: [
               Text(label, style: ThemeTextStyles.caption(isDark: isDark)),
               const SizedBox(height: 4),
-              Text(value, style: ThemeTextStyles.bodyLarge(isDark: isDark, fontWeight: FontWeight.bold)),
+              Text(
+                value,
+                style: ThemeTextStyles.bodyLarge(
+                  isDark: isDark,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  void _showEditDialog(BuildContext context, WidgetRef ref, ProfileModel user) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final nicknameController = TextEditingController(text: user.nickname ?? '');
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: isDark ? const Color(0xFF16213E) : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            width: 450,
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Редактирование профиля',
+                  style: ThemeTextStyles.h2(isDark: isDark),
+                ),
+                const SizedBox(height: 24),
+                TextFormField(
+                  controller: nicknameController,
+                  decoration: InputDecoration(
+                    labelText: 'Отображаемое имя (nickname)',
+                    labelStyle: ThemeTextStyles.caption(isDark: isDark),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    prefixIcon: const Icon(Icons.face),
+                  ),
+                  style: ThemeTextStyles.bodyMedium(isDark: isDark),
+                ),
+                const SizedBox(height: 32),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: Text(
+                        'Отмена',
+                        style: TextStyle(
+                          color: isDark ? Colors.white70 : Colors.black54,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    ElevatedButton(
+                      onPressed: () async {
+                        final updatedUser = user.copyWith(
+                          nickname: nicknameController.text.trim().isEmpty
+                              ? null
+                              : nicknameController.text.trim(),
+                          updatedAt: DateTime.now(),
+                        );
+
+                        try {
+                          await ref
+                              .read(userRepositoryProvider)
+                              .updateProfile(updatedUser);
+                          ref.invalidate(userProfileProvider(user.id));
+                          if (context.mounted) {
+                            Navigator.of(context).pop();
+                            CustomToast.show(
+                              context,
+                              message: 'Профиль успешно обновлен',
+                              type: ToastType.success,
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            CustomToast.show(
+                              context,
+                              message: 'Ошибка обновления: $e',
+                              type: ToastType.error,
+                            );
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: ThemeColors.blue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 16,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Сохранить'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

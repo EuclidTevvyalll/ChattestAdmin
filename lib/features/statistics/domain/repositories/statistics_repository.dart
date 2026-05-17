@@ -5,4 +5,5 @@ abstract class StatisticsRepository {
   Future<List<StatGroupModel>> getReportsByReason();
   Future<List<StatGroupModel>> getUsersByStatus();
   Future<List<StatGroupModel>> getRoomsByType();
+  Future<List<StatGroupModel>> getRevenueByMonth();
 }

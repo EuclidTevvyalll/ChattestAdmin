@@ -47,7 +47,9 @@ class ReportModel {
       reason: json['reason'],
       details: json['details'],
       status: json['status'] ?? 'pending',
-      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : null,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : null,
       reportedContent: json['reported_content'],
       mediaType: json['media_type'],
       mediaUrl: json['media_url'],
@@ -67,6 +69,7 @@ class ReportModel {
     };
     return reasons[reason] ?? reason;
   }
+
   ReportModel copyWith({
     String? id,
     String? reporterId,

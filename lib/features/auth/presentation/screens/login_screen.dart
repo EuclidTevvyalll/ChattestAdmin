@@ -6,6 +6,8 @@ import '../../../../theme/text_theme.dart';
 import '../../../../widgets/glass_box.dart';
 import '../providers/auth_controller.dart';
 
+import '../../../../widgets/custom_toast.dart';
+
 class LoginScreen extends HookConsumerWidget {
   const LoginScreen({super.key});
 
@@ -20,11 +22,14 @@ class LoginScreen extends HookConsumerWidget {
     ref.listen(authControllerProvider, (previous, next) {
       next.whenOrNull(
         error: (err, stack) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(err.toString()),
-              backgroundColor: ThemeColors.red,
-            ),
+          String errorMessage = err.toString();
+          if (errorMessage.startsWith('Exception: ')) {
+            errorMessage = errorMessage.substring('Exception: '.length);
+          }
+          CustomToast.show(
+            context,
+            message: errorMessage,
+            type: ToastType.error,
           );
         },
       );
@@ -99,7 +104,9 @@ class LoginScreen extends HookConsumerWidget {
                       onPressed: isLoading
                           ? null
                           : () {
-                              ref.read(authControllerProvider.notifier).login(
+                              ref
+                                  .read(authControllerProvider.notifier)
+                                  .login(
                                     emailController.text,
                                     passwordController.text,
                                   );

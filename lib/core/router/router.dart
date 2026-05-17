@@ -11,11 +11,19 @@ import '../../features/users/presentation/screens/profile_detail_screen.dart';
 import '../../features/statistics/presentation/screens/statistics_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
+  final listenable = ValueNotifier<AsyncValue>(const AsyncValue.loading());
+  
+  ref.listen(authControllerProvider, (previous, next) {
+    listenable.value = next;
+  });
+  
+  listenable.value = ref.read(authControllerProvider);
+
   return GoRouter(
     initialLocation: '/splash',
-    refreshListenable: ValueNotifier(ref.watch(authControllerProvider)),
+    refreshListenable: listenable,
     redirect: (context, state) {
-      final authState = ref.read(authControllerProvider);
+      final authState = listenable.value;
       final isLoggingIn = state.uri.path == '/login';
       final isSplashScreen = state.uri.path == '/splash';
 
@@ -37,10 +45,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/splash',
         builder: (context, state) => const SplashScreen(),
       ),
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       ShellRoute(
         builder: (context, state, child) {
           return MainLayoutScreen(child: child);

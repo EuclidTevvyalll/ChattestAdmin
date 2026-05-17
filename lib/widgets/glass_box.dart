@@ -38,7 +38,8 @@ class GlassBox extends StatelessWidget {
           decoration: BoxDecoration(
             color: color.withAlpha((opacity * 255).toInt()),
             borderRadius: borderRadius,
-            border: border ??
+            border:
+                border ??
                 Border.all(
                   color: color.withAlpha((0.1 * 255).toInt()),
                   width: 1.0,

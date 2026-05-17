@@ -17,9 +17,9 @@ class ReportsNotifier extends AsyncNotifier<List<ReportModel>> {
   void optimisticUpdateStatus(String reportId, String newStatus) {
     state.whenData((reports) {
       state = AsyncValue.data(
-        reports.map((r) => 
-          r.id == reportId ? r.copyWith(status: newStatus) : r
-        ).toList(),
+        reports
+            .map((r) => r.id == reportId ? r.copyWith(status: newStatus) : r)
+            .toList(),
       );
     });
   }
@@ -30,13 +30,16 @@ class ReportsNotifier extends AsyncNotifier<List<ReportModel>> {
 
   Future<void> refresh() async {
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() => ref.read(moderationRepositoryProvider).getReports());
+    state = await AsyncValue.guard(
+      () => ref.read(moderationRepositoryProvider).getReports(),
+    );
   }
 }
 
-final reportsProvider = AsyncNotifierProvider<ReportsNotifier, List<ReportModel>>(() {
-  return ReportsNotifier();
-});
+final reportsProvider =
+    AsyncNotifierProvider<ReportsNotifier, List<ReportModel>>(() {
+      return ReportsNotifier();
+    });
 
 class ModerationController extends Notifier<AsyncValue<void>> {
   @override
@@ -44,16 +47,18 @@ class ModerationController extends Notifier<AsyncValue<void>> {
 
   Future<void> updateStatus(String reportId, String status) async {
     final reportsNotifier = ref.read(reportsProvider.notifier);
-    
+
     // Сохраняем текущее состояние для отката
     final previousReports = ref.read(reportsProvider).value;
-    
+
     // Оптимистичное обновление
     reportsNotifier.optimisticUpdateStatus(reportId, status);
-    
+
     state = await AsyncValue.guard(() async {
       try {
-        await ref.read(moderationRepositoryProvider).updateStatus(reportId, status);
+        await ref
+            .read(moderationRepositoryProvider)
+            .updateStatus(reportId, status);
       } catch (e) {
         // Откат при ошибке
         if (previousReports != null) {
@@ -64,7 +69,12 @@ class ModerationController extends Notifier<AsyncValue<void>> {
     });
   }
 
-  Future<void> blockUser(String reportId, String userId, {Duration? duration, String? reason}) async {
+  Future<void> blockUser(
+    String reportId,
+    String userId, {
+    Duration? duration,
+    String? reason,
+  }) async {
     final reportsNotifier = ref.read(reportsProvider.notifier);
     final previousReports = ref.read(reportsProvider).value;
 
@@ -105,6 +115,7 @@ class ModerationController extends Notifier<AsyncValue<void>> {
   }
 }
 
-final moderationControllerProvider = NotifierProvider<ModerationController, AsyncValue<void>>(() {
-  return ModerationController();
-});
+final moderationControllerProvider =
+    NotifierProvider<ModerationController, AsyncValue<void>>(() {
+      return ModerationController();
+    });

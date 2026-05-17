@@ -14,27 +14,29 @@ class SupabaseUserRepository implements UserRepository {
         .select()
         .eq('id', id)
         .maybeSingle();
-    
+
     if (data == null) return null;
     return ProfileModel.fromJson(data);
   }
 
   @override
-  Future<List<ProfileModel>> getAllUsers({int limit = 50, int offset = 0}) async {
+  Future<List<ProfileModel>> getAllUsers({
+    int limit = 50,
+    int offset = 0,
+  }) async {
     final data = await _client
         .from('profiles')
         .select()
         .order('updated_at', ascending: false)
         .range(offset, offset + limit - 1);
-    
+
     return (data as List).map((json) => ProfileModel.fromJson(json)).toList();
   }
 
   @override
   Future<void> updateProfile(ProfileModel profile) async {
-    await _client
-        .from('profiles')
-        .update(profile.toJson())
-        .eq('id', profile.id);
+    final updateData = Map<String, dynamic>.from(profile.toJson())
+      ..remove('created_at');
+    await _client.from('profiles').update(updateData).eq('id', profile.id);
   }
 }

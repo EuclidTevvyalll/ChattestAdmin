@@ -62,9 +62,7 @@ class _Sidebar extends ConsumerWidget {
       width: 280,
       borderRadius: BorderRadius.zero,
       border: Border(
-        right: BorderSide(
-          color: isDark ? Colors.white10 : Colors.black12,
-        ),
+        right: BorderSide(color: isDark ? Colors.white10 : Colors.black12),
       ),
       opacity: isDark ? 0.05 : 0.02,
       child: Column(
@@ -75,14 +73,14 @@ class _Sidebar extends ConsumerWidget {
             data: (user) => Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: InkWell(
-              onTap: user != null
-                  ? () {
-                      final targetPath = '/users/${user.id}';
-                      if (GoRouterState.of(context).uri.path != targetPath) {
-                        context.go(targetPath);
+                onTap: user != null
+                    ? () {
+                        final targetPath = '/users/${user.id}';
+                        if (GoRouterState.of(context).uri.path != targetPath) {
+                          context.go(targetPath);
+                        }
                       }
-                    }
-                  : null,
+                    : null,
                 borderRadius: BorderRadius.circular(12),
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
@@ -96,7 +94,10 @@ class _Sidebar extends ConsumerWidget {
                           decoration: BoxDecoration(
                             color: ThemeColors.blue.withAlpha(50),
                             shape: BoxShape.circle,
-                            border: Border.all(color: ThemeColors.blue.withAlpha(100), width: 1.5),
+                            border: Border.all(
+                              color: ThemeColors.blue.withAlpha(100),
+                              width: 1.5,
+                            ),
                             image: user?.avatarUrl != null
                                 ? DecorationImage(
                                     image: NetworkImage(user!.avatarUrl!),
@@ -105,7 +106,11 @@ class _Sidebar extends ConsumerWidget {
                                 : null,
                           ),
                           child: user?.avatarUrl == null
-                              ? const Icon(Icons.person_rounded, color: ThemeColors.blue, size: 24)
+                              ? const Icon(
+                                  Icons.person_rounded,
+                                  color: ThemeColors.blue,
+                                  size: 24,
+                                )
                               : null,
                         ),
                       ),
@@ -138,7 +143,8 @@ class _Sidebar extends ConsumerWidget {
                 ),
               ),
             ),
-            loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+            loading: () =>
+                const Center(child: CircularProgressIndicator(strokeWidth: 2)),
             error: (_, _) => const SizedBox(),
           ),
           const SizedBox(height: 32),
@@ -243,17 +249,12 @@ class _Header extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 32),
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(
-            color: isDark ? Colors.white10 : Colors.black12,
-          ),
+          bottom: BorderSide(color: isDark ? Colors.white10 : Colors.black12),
         ),
       ),
       child: Row(
         children: [
-          Text(
-            'Панель управления',
-            style: ThemeTextStyles.h3(isDark: isDark),
-          ),
+          Text('Панель управления', style: ThemeTextStyles.h3(isDark: isDark)),
           const Spacer(),
           IconButton(
             icon: Icon(

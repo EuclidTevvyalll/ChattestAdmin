@@ -80,7 +80,7 @@ class DashboardScreen extends ConsumerWidget {
         ),
         _StatCard(
           title: 'Доход',
-          value: '\$${stats.revenue}',
+          value: '${stats.revenue.toStringAsFixed(0)} ₽',
           icon: Icons.monetization_on_rounded,
           trend: stats.revenueTrend,
           color: ThemeColors.purple,
@@ -118,15 +118,22 @@ class DashboardScreen extends ConsumerWidget {
                 ),
                 titlesData: FlTitlesData(
                   show: true,
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 40,
                       getTitlesWidget: (value, meta) => Text(
                         value.toInt().toString(),
-                        style: ThemeTextStyles.caption(isDark: isDark, color: isDark ? Colors.white38 : Colors.black38),
+                        style: ThemeTextStyles.caption(
+                          isDark: isDark,
+                          color: isDark ? Colors.white38 : Colors.black38,
+                        ),
                       ),
                     ),
                   ),
@@ -136,12 +143,17 @@ class DashboardScreen extends ConsumerWidget {
                       getTitlesWidget: (value, meta) {
                         final index = value.toInt();
                         if (index < 0 || index >= 7) return const SizedBox();
-                        final date = DateTime.now().subtract(Duration(days: 6 - index));
+                        final date = DateTime.now().subtract(
+                          Duration(days: 6 - index),
+                        );
                         return Padding(
                           padding: const EdgeInsets.only(top: 10),
                           child: Text(
                             DateFormat('E', 'ru').format(date),
-                            style: ThemeTextStyles.caption(isDark: isDark, color: isDark ? Colors.white38 : Colors.black38),
+                            style: ThemeTextStyles.caption(
+                              isDark: isDark,
+                              color: isDark ? Colors.white38 : Colors.black38,
+                            ),
                           ),
                         );
                       },
@@ -190,10 +202,7 @@ class DashboardScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Новые пользователи',
-            style: ThemeTextStyles.h3(isDark: isDark),
-          ),
+          Text('Новые пользователи', style: ThemeTextStyles.h3(isDark: isDark)),
           const SizedBox(height: 24),
           usersAsync.when(
             data: (users) => ListView.separated(
@@ -215,7 +224,10 @@ class DashboardScreen extends ConsumerWidget {
                   onTap: () => context.push('/users/${user.id}'),
                   borderRadius: BorderRadius.circular(12),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 8,
+                      horizontal: 8,
+                    ),
                     child: Row(
                       children: [
                         Hero(
@@ -234,8 +246,11 @@ class DashboardScreen extends ConsumerWidget {
                                   : null,
                             ),
                             child: user.avatarUrl == null
-                                ? const Icon(Icons.person_outline,
-                                    size: 20, color: ThemeColors.blue)
+                                ? const Icon(
+                                    Icons.person_outline,
+                                    size: 20,
+                                    color: ThemeColors.blue,
+                                  )
                                 : null,
                           ),
                         ),
@@ -247,13 +262,18 @@ class DashboardScreen extends ConsumerWidget {
                               Text(
                                 user.nickname ?? user.username,
                                 style: ThemeTextStyles.bodyMedium(
-                                    isDark: isDark, fontWeight: FontWeight.bold),
+                                  isDark: isDark,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                               Text(
                                 timeAgo,
                                 style: ThemeTextStyles.caption(
-                                    isDark: isDark,
-                                    color: isDark ? Colors.white38 : Colors.black38),
+                                  isDark: isDark,
+                                  color: isDark
+                                      ? Colors.white38
+                                      : Colors.black38,
+                                ),
                               ),
                             ],
                           ),
@@ -325,7 +345,10 @@ class _StatCard extends StatelessWidget {
               const SizedBox(width: 8),
               Flexible(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.green.withAlpha(25),
                     borderRadius: BorderRadius.circular(8),
@@ -349,10 +372,7 @@ class _StatCard extends StatelessWidget {
             children: [
               FittedBox(
                 fit: BoxFit.scaleDown,
-                child: Text(
-                  value,
-                  style: ThemeTextStyles.h2(isDark: isDark),
-                ),
+                child: Text(value, style: ThemeTextStyles.h2(isDark: isDark)),
               ),
               const SizedBox(height: 4),
               Text(
