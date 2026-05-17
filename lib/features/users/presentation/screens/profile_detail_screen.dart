@@ -7,7 +7,7 @@ import '../../../../theme/text_theme.dart';
 import '../../../../widgets/glass_box.dart';
 import '../providers/user_providers.dart';
 import '../../../../core/models/profile_model.dart';
-import '../../../../widgets/custom_toast.dart';
+import '../../../../widgets/custom_dialog.dart';
 
 class ProfileDetailScreen extends ConsumerWidget {
   final String userId;
@@ -357,18 +357,19 @@ class ProfileDetailScreen extends ConsumerWidget {
                           ref.invalidate(userProfileProvider(user.id));
                           if (context.mounted) {
                             Navigator.of(context).pop();
-                            CustomToast.show(
-                              context,
+                            showCustomDialog(
+                              context: context,
+                              title: 'Успешно',
                               message: 'Профиль успешно обновлен',
-                              type: ToastType.success,
                             );
                           }
                         } catch (e) {
                           if (context.mounted) {
-                            CustomToast.show(
-                              context,
+                            showCustomDialog(
+                              context: context,
+                              title: 'Ошибка',
                               message: 'Ошибка обновления: $e',
-                              type: ToastType.error,
+                              isError: true,
                             );
                           }
                         }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import '../../../../theme/theme_colors.dart';
-import '../../../../widgets/custom_toast.dart';
+import '../../../../widgets/custom_dialog.dart';
 
 class VideoPlayerBubble extends StatefulWidget {
   final String videoUrl;
@@ -180,10 +180,11 @@ class _FullScreenVideoViewerState extends State<FullScreenVideoViewer> {
     } catch (e) {
       debugPrint('CRITICAL: Fullscreen video initialization failed: $e');
       if (mounted) {
-        CustomToast.show(
-          context,
+        showCustomDialog(
+          context: context,
+          title: 'Ошибка',
           message: 'Ошибка загрузки видео: $e',
-          type: ToastType.error,
+          isError: true,
         );
       }
     }

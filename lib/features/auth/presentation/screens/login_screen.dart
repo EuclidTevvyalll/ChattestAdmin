@@ -6,7 +6,7 @@ import '../../../../theme/text_theme.dart';
 import '../../../../widgets/glass_box.dart';
 import '../providers/auth_controller.dart';
 
-import '../../../../widgets/custom_toast.dart';
+import '../../../../widgets/custom_dialog.dart';
 
 class LoginScreen extends HookConsumerWidget {
   const LoginScreen({super.key});
@@ -26,10 +26,11 @@ class LoginScreen extends HookConsumerWidget {
           if (errorMessage.startsWith('Exception: ')) {
             errorMessage = errorMessage.substring('Exception: '.length);
           }
-          CustomToast.show(
-            context,
+          showCustomDialog(
+            context: context,
+            title: 'Ошибка',
             message: errorMessage,
-            type: ToastType.error,
+            isError: true,
           );
         },
       );

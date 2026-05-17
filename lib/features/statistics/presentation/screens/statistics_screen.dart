@@ -8,7 +8,7 @@ import '../../../../widgets/glass_box.dart';
 import '../providers/statistics_controller.dart';
 import '../../domain/models/stat_group_model.dart';
 import '../utils/statistics_pdf_export.dart';
-import '../../../../widgets/custom_toast.dart';
+import '../../../../widgets/custom_dialog.dart';
 
 class StatisticsScreen extends HookConsumerWidget {
   const StatisticsScreen({super.key});
@@ -73,18 +73,19 @@ class StatisticsScreen extends HookConsumerWidget {
                                 groupType.label,
                               );
                               if (context.mounted) {
-                                CustomToast.show(
-                                  context,
+                                showCustomDialog(
+                                  context: context,
+                                  title: 'Успешно',
                                   message: 'Отчет успешно экспортирован',
-                                  type: ToastType.success,
                                 );
                               }
                             } catch (e) {
                               if (context.mounted) {
-                                CustomToast.show(
-                                  context,
+                                showCustomDialog(
+                                  context: context,
+                                  title: 'Ошибка',
                                   message: 'Ошибка экспорта: $e',
-                                  type: ToastType.error,
+                                  isError: true,
                                 );
                               }
                             } finally {
