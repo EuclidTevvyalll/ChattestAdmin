@@ -17,8 +17,10 @@ class DashboardScreen extends ConsumerWidget {
     final statsAsync = ref.watch(dashboardStatsProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return statsAsync.when(
-      data: (stats) => SingleChildScrollView(
+    final stats = statsAsync.hasValue ? statsAsync.value : null;
+
+    if (stats != null) {
+      return SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -40,7 +42,11 @@ class DashboardScreen extends ConsumerWidget {
             ),
           ],
         ),
-      ),
+      );
+    }
+
+    return statsAsync.when(
+      data: (stats) => const SizedBox(),
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, stack) => Center(child: Text('Ошибка: $err')),
     );
@@ -195,6 +201,7 @@ class DashboardScreen extends ConsumerWidget {
   Widget _buildRecentUsers(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final usersAsync = ref.watch(recentUsersProvider);
+    final users = usersAsync.hasValue ? usersAsync.value : null;
 
     return GlassBox(
       padding: const EdgeInsets.all(32),
@@ -204,96 +211,107 @@ class DashboardScreen extends ConsumerWidget {
         children: [
           Text('Новые пользователи', style: ThemeTextStyles.h3(isDark: isDark)),
           const SizedBox(height: 24),
-          usersAsync.when(
-            data: (users) => ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: users.length,
-              separatorBuilder: (context, index) => Divider(
-                height: 32,
-                color: isDark ? Colors.white10 : Colors.black12,
-              ),
-              itemBuilder: (context, index) {
-                final user = users[index];
-                final displayDate = user.createdAt ?? user.updatedAt;
-                final timeAgo = displayDate != null
-                    ? _formatTimeAgo(displayDate)
-                    : 'Недавно';
-
-                return InkWell(
-                  onTap: () => context.push('/users/${user.id}'),
-                  borderRadius: BorderRadius.circular(12),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 8,
-                      horizontal: 8,
-                    ),
-                    child: Row(
-                      children: [
-                        Hero(
-                          tag: 'avatar_${user.id}',
-                          child: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: ThemeColors.blue.withAlpha(25),
-                              shape: BoxShape.circle,
-                              image: user.avatarUrl != null
-                                  ? DecorationImage(
-                                      image: NetworkImage(user.avatarUrl!),
-                                      fit: BoxFit.cover,
-                                    )
-                                  : null,
-                            ),
-                            child: user.avatarUrl == null
-                                ? const Icon(
-                                    Icons.person_outline,
-                                    size: 20,
-                                    color: ThemeColors.blue,
-                                  )
-                                : null,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                user.nickname ?? user.username,
-                                style: ThemeTextStyles.bodyMedium(
-                                  isDark: isDark,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                timeAgo,
-                                style: ThemeTextStyles.caption(
-                                  isDark: isDark,
-                                  color: isDark
-                                      ? Colors.white38
-                                      : Colors.black38,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          size: 14,
-                          color: isDark ? Colors.white24 : Colors.black26,
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+          if (users != null)
+            _buildRecentUsersList(context, users, isDark)
+          else
+            usersAsync.when(
+              data: (users) => const SizedBox(),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, _) => Text('Ошибка: $err'),
             ),
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, _) => Text('Ошибка: $err'),
-          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildRecentUsersList(
+    BuildContext context,
+    List<dynamic> users,
+    bool isDark,
+  ) {
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: users.length,
+      separatorBuilder: (context, index) => Divider(
+        height: 32,
+        color: isDark ? Colors.white10 : Colors.black12,
+      ),
+      itemBuilder: (context, index) {
+        final user = users[index];
+        final displayDate = user.createdAt ?? user.updatedAt;
+        final timeAgo = displayDate != null
+            ? _formatTimeAgo(displayDate)
+            : 'Недавно';
+
+        return InkWell(
+          onTap: () => context.push('/users/${user.id}'),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              vertical: 8,
+              horizontal: 8,
+            ),
+            child: Row(
+              children: [
+                Hero(
+                  tag: 'avatar_${user.id}',
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: ThemeColors.blue.withAlpha(25),
+                      shape: BoxShape.circle,
+                      image: user.avatarUrl != null
+                          ? DecorationImage(
+                              image: NetworkImage(user.avatarUrl!),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                    ),
+                    child: user.avatarUrl == null
+                        ? const Icon(
+                            Icons.person_outline,
+                            size: 20,
+                            color: ThemeColors.blue,
+                          )
+                        : null,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        user.nickname ?? user.username,
+                        style: ThemeTextStyles.bodyMedium(
+                          isDark: isDark,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        timeAgo,
+                        style: ThemeTextStyles.caption(
+                          isDark: isDark,
+                          color: isDark
+                              ? Colors.white38
+                              : Colors.black38,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: isDark ? Colors.white24 : Colors.black26,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
