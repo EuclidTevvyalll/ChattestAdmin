@@ -487,6 +487,8 @@ class StatisticsScreen extends HookConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final startDate = ref.watch(startDateProvider);
     final endDate = ref.watch(endDateProvider);
+    final groupType = ref.watch(statGroupTypeProvider);
+    final isMonthly = groupType == StatGroupType.revenueByMonth;
 
     return GlassBox(
       padding: const EdgeInsets.all(16),
@@ -497,7 +499,7 @@ class StatisticsScreen extends HookConsumerWidget {
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Text(
-            'Период отчета:',
+            isMonthly ? 'Период отчета (в месяцах):' : 'Период отчета:',
             style: ThemeTextStyles.bodyMedium(
               isDark: isDark,
               fontWeight: FontWeight.bold,
@@ -505,37 +507,67 @@ class StatisticsScreen extends HookConsumerWidget {
           ),
           _buildDatePickerButton(
             context: context,
-            label: 'С: ${DateFormat('dd.MM.yyyy', 'ru').format(startDate)}',
+            label: isMonthly
+                ? 'С: ${_formatMonthLabel(startDate)}'
+                : 'С: ${DateFormat('dd.MM.yyyy', 'ru').format(startDate)}',
             onTap: () async {
-              final now = DateTime.now();
-              final lastPossible = endDate.subtract(const Duration(days: 1));
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: startDate.isAfter(lastPossible) ? lastPossible : startDate,
-                firstDate: DateTime(2020),
-                lastDate: lastPossible.isAfter(now) ? now : lastPossible,
-                locale: const Locale('ru', 'RU'),
-              );
-              if (picked != null) {
-                ref.read(startDateProvider.notifier).setDate(picked);
+              if (isMonthly) {
+                final picked = await _showMonthYearPicker(
+                  context: context,
+                  initialDate: startDate,
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime.now(),
+                  maxSelectableDate: endDate,
+                );
+                if (picked != null) {
+                  ref.read(startDateProvider.notifier).setDate(DateTime(picked.year, picked.month, 1));
+                }
+              } else {
+                final now = DateTime.now();
+                final lastPossible = endDate.subtract(const Duration(days: 1));
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: startDate.isAfter(lastPossible) ? lastPossible : startDate,
+                  firstDate: DateTime(2020),
+                  lastDate: lastPossible.isAfter(now) ? now : lastPossible,
+                  locale: const Locale('ru', 'RU'),
+                );
+                if (picked != null) {
+                  ref.read(startDateProvider.notifier).setDate(picked);
+                }
               }
             },
           ),
           _buildDatePickerButton(
             context: context,
-            label: 'По: ${DateFormat('dd.MM.yyyy', 'ru').format(endDate)}',
+            label: isMonthly
+                ? 'По: ${_formatMonthLabel(endDate)}'
+                : 'По: ${DateFormat('dd.MM.yyyy', 'ru').format(endDate)}',
             onTap: () async {
-              final now = DateTime.now();
-              final firstPossible = startDate.add(const Duration(days: 1));
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: endDate.isBefore(firstPossible) ? firstPossible : (endDate.isAfter(now) ? now : endDate),
-                firstDate: firstPossible,
-                lastDate: now,
-                locale: const Locale('ru', 'RU'),
-              );
-              if (picked != null) {
-                ref.read(endDateProvider.notifier).setDate(picked);
+              if (isMonthly) {
+                final picked = await _showMonthYearPicker(
+                  context: context,
+                  initialDate: endDate,
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime.now(),
+                  minSelectableDate: startDate,
+                );
+                if (picked != null) {
+                  ref.read(endDateProvider.notifier).setDate(DateTime(picked.year, picked.month + 1, 0));
+                }
+              } else {
+                final now = DateTime.now();
+                final firstPossible = startDate.add(const Duration(days: 1));
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: endDate.isBefore(firstPossible) ? firstPossible : (endDate.isAfter(now) ? now : endDate),
+                  firstDate: firstPossible,
+                  lastDate: now,
+                  locale: const Locale('ru', 'RU'),
+                );
+                if (picked != null) {
+                  ref.read(endDateProvider.notifier).setDate(picked);
+                }
               }
             },
           ),
@@ -577,6 +609,236 @@ class StatisticsScreen extends HookConsumerWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  String _formatMonthLabel(DateTime date) {
+    final raw = DateFormat('MMMM yyyy', 'ru').format(date);
+    if (raw.isEmpty) return '';
+    return '${raw[0].toUpperCase()}${raw.substring(1)}';
+  }
+
+  Future<DateTime?> _showMonthYearPicker({
+    required BuildContext context,
+    required DateTime initialDate,
+    required DateTime firstDate,
+    required DateTime lastDate,
+    DateTime? minSelectableDate,
+    DateTime? maxSelectableDate,
+  }) {
+    return showDialog<DateTime>(
+      context: context,
+      builder: (context) {
+        return _MonthYearPickerDialog(
+          initialDate: initialDate,
+          firstDate: firstDate,
+          lastDate: lastDate,
+          minSelectableDate: minSelectableDate,
+          maxSelectableDate: maxSelectableDate,
+        );
+      },
+    );
+  }
+}
+
+class _MonthYearPickerDialog extends StatefulWidget {
+  final DateTime initialDate;
+  final DateTime firstDate;
+  final DateTime lastDate;
+  final DateTime? minSelectableDate;
+  final DateTime? maxSelectableDate;
+
+  const _MonthYearPickerDialog({
+    required this.initialDate,
+    required this.firstDate,
+    required this.lastDate,
+    this.minSelectableDate,
+    this.maxSelectableDate,
+  });
+
+  @override
+  State<_MonthYearPickerDialog> createState() => _MonthYearPickerDialogState();
+}
+
+class _MonthYearPickerDialogState extends State<_MonthYearPickerDialog> {
+  late int _selectedYear;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedYear = widget.initialDate.year;
+  }
+
+  static const List<String> _months = [
+    'Январь',
+    'Февраль',
+    'Март',
+    'Апрель',
+    'Май',
+    'Июнь',
+    'Июль',
+    'Август',
+    'Сентябрь',
+    'Октябрь',
+    'Ноябрь',
+    'Декабрь',
+  ];
+
+  bool _isMonthEnabled(int month) {
+    final monthDate = DateTime(_selectedYear, month);
+    final firstDateBound = DateTime(widget.firstDate.year, widget.firstDate.month);
+    final lastDateBound = DateTime(widget.lastDate.year, widget.lastDate.month);
+
+    if (monthDate.isBefore(firstDateBound) || monthDate.isAfter(lastDateBound)) {
+      return false;
+    }
+
+    if (widget.minSelectableDate != null) {
+      final minBound = DateTime(widget.minSelectableDate!.year, widget.minSelectableDate!.month);
+      if (monthDate.isBefore(minBound)) {
+        return false;
+      }
+    }
+
+    if (widget.maxSelectableDate != null) {
+      final maxBound = DateTime(widget.maxSelectableDate!.year, widget.maxSelectableDate!.month);
+      if (monthDate.isAfter(maxBound)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 380),
+        child: GlassBox(
+          padding: const EdgeInsets.all(24),
+          opacity: isDark ? 0.15 : 0.08,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      Icons.chevron_left,
+                      color: isDark ? Colors.white70 : Colors.black87,
+                    ),
+                    onPressed: _selectedYear > widget.firstDate.year
+                        ? () {
+                            setState(() {
+                              _selectedYear--;
+                            });
+                          }
+                        : null,
+                  ),
+                  Text(
+                    '$_selectedYear',
+                    style: ThemeTextStyles.h3(isDark: isDark),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.chevron_right,
+                      color: isDark ? Colors.white70 : Colors.black87,
+                    ),
+                    onPressed: _selectedYear < widget.lastDate.year
+                        ? () {
+                            setState(() {
+                              _selectedYear++;
+                            });
+                          }
+                        : null,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 1.8,
+                ),
+                itemCount: 12,
+                itemBuilder: (context, index) {
+                  final month = index + 1;
+                  final isEnabled = _isMonthEnabled(month);
+                  final isSelected = widget.initialDate.year == _selectedYear &&
+                      widget.initialDate.month == month;
+
+                  return InkWell(
+                    onTap: isEnabled
+                        ? () {
+                            Navigator.of(context).pop(DateTime(_selectedYear, month));
+                          }
+                        : null,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? ThemeColors.blue
+                            : (isEnabled
+                                ? (isDark ? Colors.white10 : Colors.black.withAlpha(10))
+                                : Colors.transparent),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSelected
+                              ? ThemeColors.blue
+                              : (isEnabled
+                                  ? (isDark ? Colors.white24 : Colors.black12)
+                                  : Colors.transparent),
+                        ),
+                      ),
+                      child: Text(
+                        _months[index],
+                        style: ThemeTextStyles.bodyMedium(
+                          isDark: isDark,
+                          color: isSelected
+                              ? Colors.white
+                              : (isEnabled
+                                  ? (isDark ? Colors.white : Colors.black87)
+                                  : (isDark ? Colors.white24 : Colors.black26)),
+                        ).copyWith(
+                          fontWeight: isSelected ? FontWeight.bold : null,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: Text(
+                      'Отмена',
+                      style: TextStyle(
+                        color: isDark ? Colors.white70 : Colors.black87,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
