@@ -8,7 +8,12 @@ import 'package:open_filex/open_filex.dart';
 import '../../domain/models/stat_group_model.dart';
 
 class StatisticsPdfExport {
-  static Future<void> export(List<StatGroupModel> data, String title) async {
+  static Future<void> export(
+    List<StatGroupModel> data,
+    String title, {
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
     final pdf = pw.Document();
     
     final pw.Font font;
@@ -81,9 +86,11 @@ class StatisticsPdfExport {
                 children: [
                   pw.Expanded(
                     child: pw.Text(
-                      'Отчет по статистике: $title',
+                      startDate != null && endDate != null
+                          ? 'Отчет по статистике: $title\nПериод: ${DateFormat('dd.MM.yyyy').format(startDate)} - ${DateFormat('dd.MM.yyyy').format(endDate)}'
+                          : 'Отчет по статистике: $title',
                       style: pw.TextStyle(
-                        fontSize: 22,
+                        fontSize: 16,
                         fontWeight: pw.FontWeight.bold,
                       ),
                     ),

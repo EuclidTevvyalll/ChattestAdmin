@@ -145,7 +145,7 @@ class ProfileDetailScreen extends ConsumerWidget {
                           ),
                         ),
                         child: Text(
-                          'ADMIN',
+                          'АДМИНИСТРАТОР',
                           style: ThemeTextStyles.caption(
                             isDark: isDark,
                             color: ThemeColors.blue,

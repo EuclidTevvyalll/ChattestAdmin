@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:intl/intl.dart';
 import '../../../../theme/theme_colors.dart';
 import '../../../../theme/text_theme.dart';
 import '../../../../widgets/glass_box.dart';
@@ -34,7 +35,7 @@ class StatisticsScreen extends HookConsumerWidget {
             children: [
               Text(
                 'Детальная статистика',
-                style: ThemeTextStyles.h2(isDark: isDark),
+                style: ThemeTextStyles.h1(isDark: isDark),
               ),
               Wrap(
                 spacing: 16,
@@ -45,6 +46,7 @@ class StatisticsScreen extends HookConsumerWidget {
                     context,
                     value: groupType,
                     items: StatGroupType.values,
+                    width: 280,
                     onChanged: (val) {
                       if (val != null) {
                         ref.read(statGroupTypeProvider.notifier).setType(val);
@@ -56,6 +58,7 @@ class StatisticsScreen extends HookConsumerWidget {
                     context,
                     value: sortType,
                     items: StatSortType.values,
+                    width: 220,
                     onChanged: (val) {
                       if (val != null) {
                         ref.read(statSortTypeProvider.notifier).setType(val);
@@ -68,9 +71,16 @@ class StatisticsScreen extends HookConsumerWidget {
                         ? () async {
                             isExporting.value = true;
                             try {
+                              final startDate = ref.read(startDateProvider);
+                              final endDate = ref.read(endDateProvider);
+                              final hasDates = groupType != StatGroupType.reportsByStatus &&
+                                  groupType != StatGroupType.usersByStatus;
+
                               await StatisticsPdfExport.export(
                                 statsAsync.value!,
                                 groupType.label,
+                                startDate: hasDates ? startDate : null,
+                                endDate: hasDates ? endDate : null,
                               );
                               if (context.mounted) {
                                 showCustomDialog(
@@ -122,6 +132,11 @@ class StatisticsScreen extends HookConsumerWidget {
               ),
             ],
           ),
+          if (groupType != StatGroupType.reportsByStatus &&
+              groupType != StatGroupType.usersByStatus) ...[
+            const SizedBox(height: 24),
+            _buildDateRangeSelector(context, ref),
+          ],
           const SizedBox(height: 32),
           statsAsync.when(
             data: (data) => _buildContent(context, data, groupType.label),
@@ -153,14 +168,38 @@ class StatisticsScreen extends HookConsumerWidget {
   ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    if (data.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(64.0),
-          child: Text(
-            'Нет данных для отображения',
-            style: ThemeTextStyles.h3(isDark: isDark),
-          ),
+    final hasNoData = data.isEmpty || data.every((e) => e.count == 0);
+
+    if (hasNoData) {
+      return GlassBox(
+        padding: const EdgeInsets.all(32),
+        opacity: isDark ? 0.05 : 0.02,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: ThemeTextStyles.h3(isDark: isDark)),
+            if (title.contains('Жалобы по статусу') || title.contains('Пользователи по статусу')) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Текущее время: ${DateFormat('dd.MM.yyyy HH:mm', 'ru').format(DateTime.now())}',
+                style: ThemeTextStyles.bodyMedium(
+                  isDark: isDark,
+                  color: isDark ? Colors.white54 : Colors.black54,
+                ),
+              ),
+            ],
+            const SizedBox(height: 80),
+            Center(
+              child: Text(
+                'нет данных',
+                style: ThemeTextStyles.h3(
+                  isDark: isDark,
+                  color: isDark ? Colors.white54 : Colors.black54,
+                ),
+              ),
+            ),
+            const SizedBox(height: 80),
+          ],
         ),
       );
     }
@@ -174,6 +213,16 @@ class StatisticsScreen extends HookConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title, style: ThemeTextStyles.h3(isDark: isDark)),
+              if (title.contains('Жалобы по статусу') || title.contains('Пользователи по статусу')) ...[
+                const SizedBox(height: 12),
+                Text(
+                  'Текущее время: ${DateFormat('dd.MM.yyyy HH:mm', 'ru').format(DateTime.now())}',
+                  style: ThemeTextStyles.bodyMedium(
+                    isDark: isDark,
+                    color: isDark ? Colors.white54 : Colors.black54,
+                  ),
+                ),
+              ],
               const SizedBox(height: 32),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -397,10 +446,12 @@ class StatisticsScreen extends HookConsumerWidget {
     required List<T> items,
     required void Function(T?) onChanged,
     required String Function(T) labelExtractor,
+    double? width,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
+      width: width,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         color: isDark ? Colors.white10 : Colors.black.withAlpha(10),
@@ -427,6 +478,105 @@ class StatisticsScreen extends HookConsumerWidget {
             );
           }).toList(),
           onChanged: onChanged,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDateRangeSelector(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final startDate = ref.watch(startDateProvider);
+    final endDate = ref.watch(endDateProvider);
+
+    return GlassBox(
+      padding: const EdgeInsets.all(16),
+      opacity: isDark ? 0.05 : 0.02,
+      child: Wrap(
+        spacing: 16,
+        runSpacing: 12,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Text(
+            'Период отчета:',
+            style: ThemeTextStyles.bodyMedium(
+              isDark: isDark,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          _buildDatePickerButton(
+            context: context,
+            label: 'С: ${DateFormat('dd.MM.yyyy', 'ru').format(startDate)}',
+            onTap: () async {
+              final now = DateTime.now();
+              final lastPossible = endDate.subtract(const Duration(days: 1));
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: startDate.isAfter(lastPossible) ? lastPossible : startDate,
+                firstDate: DateTime(2020),
+                lastDate: lastPossible.isAfter(now) ? now : lastPossible,
+                locale: const Locale('ru', 'RU'),
+              );
+              if (picked != null) {
+                ref.read(startDateProvider.notifier).setDate(picked);
+              }
+            },
+          ),
+          _buildDatePickerButton(
+            context: context,
+            label: 'По: ${DateFormat('dd.MM.yyyy', 'ru').format(endDate)}',
+            onTap: () async {
+              final now = DateTime.now();
+              final firstPossible = startDate.add(const Duration(days: 1));
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: endDate.isBefore(firstPossible) ? firstPossible : (endDate.isAfter(now) ? now : endDate),
+                firstDate: firstPossible,
+                lastDate: now,
+                locale: const Locale('ru', 'RU'),
+              );
+              if (picked != null) {
+                ref.read(endDateProvider.notifier).setDate(picked);
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDatePickerButton({
+    required BuildContext context,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isDark ? Colors.white10 : Colors.black.withAlpha(10),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: isDark ? Colors.white24 : Colors.black12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.calendar_today_rounded,
+              size: 16,
+              color: isDark ? Colors.white70 : Colors.black87,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: ThemeTextStyles.bodyMedium(
+                isDark: isDark,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
+            ),
+          ],
         ),
       ),
     );

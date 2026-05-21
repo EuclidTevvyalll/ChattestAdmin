@@ -26,7 +26,7 @@ class SupabaseStatisticsRepository implements StatisticsRepository {
   }
 
   @override
-  Future<List<StatGroupModel>> getReportsByReason() async {
+  Future<List<StatGroupModel>> getReportsByReason({DateTime? startDate, DateTime? endDate}) async {
     final reasons = [
       'spam',
       'harassment',
@@ -36,11 +36,25 @@ class SupabaseStatisticsRepository implements StatisticsRepository {
     ];
     final results = <StatGroupModel>[];
 
+    final start = startDate != null
+        ? DateTime(startDate.year, startDate.month, startDate.day, 0, 0, 0)
+        : null;
+    final end = endDate != null
+        ? DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59, 999)
+        : null;
+
     for (final reason in reasons) {
-      final count = await _client
+      var query = _client
           .from('reports')
           .count(CountOption.exact)
           .eq('reason', reason);
+      if (start != null) {
+        query = query.gte('created_at', start.toIso8601String());
+      }
+      if (end != null) {
+        query = query.lte('created_at', end.toIso8601String());
+      }
+      final count = await query;
       results.add(
         StatGroupModel(label: _formatReason(reason), count: count.toDouble()),
       );
@@ -73,15 +87,29 @@ class SupabaseStatisticsRepository implements StatisticsRepository {
   }
 
   @override
-  Future<List<StatGroupModel>> getRoomsByType() async {
+  Future<List<StatGroupModel>> getRoomsByType({DateTime? startDate, DateTime? endDate}) async {
     final types = ['direct', 'group', 'channel'];
     final results = <StatGroupModel>[];
 
+    final start = startDate != null
+        ? DateTime(startDate.year, startDate.month, startDate.day, 0, 0, 0)
+        : null;
+    final end = endDate != null
+        ? DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59, 999)
+        : null;
+
     for (final type in types) {
-      final count = await _client
+      var query = _client
           .from('rooms')
           .count(CountOption.exact)
           .eq('type', type);
+      if (start != null) {
+        query = query.gte('created_at', start.toIso8601String());
+      }
+      if (end != null) {
+        query = query.lte('created_at', end.toIso8601String());
+      }
+      final count = await query;
       results.add(
         StatGroupModel(label: _formatRoomType(type), count: count.toDouble()),
       );
@@ -90,11 +118,27 @@ class SupabaseStatisticsRepository implements StatisticsRepository {
   }
 
   @override
-  Future<List<StatGroupModel>> getRevenueByMonth() async {
+  Future<List<StatGroupModel>> getRevenueByMonth({DateTime? startDate, DateTime? endDate}) async {
     try {
-      final response = await _client
+      var query = _client
           .from('subscriptions')
           .select('amount, created_at');
+
+      final start = startDate != null
+          ? DateTime(startDate.year, startDate.month, startDate.day, 0, 0, 0)
+          : null;
+      final end = endDate != null
+          ? DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59, 999)
+          : null;
+
+      if (start != null) {
+        query = query.gte('created_at', start.toIso8601String());
+      }
+      if (end != null) {
+        query = query.lte('created_at', end.toIso8601String());
+      }
+
+      final response = await query;
 
       final Map<String, double> revenueByMonth = {};
 

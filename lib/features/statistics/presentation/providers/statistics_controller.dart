@@ -53,10 +53,37 @@ final statSortTypeProvider =
       () => StatSortTypeNotifier(),
     );
 
+class StartDateNotifier extends Notifier<DateTime> {
+  @override
+  DateTime build() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day).subtract(const Duration(days: 30));
+  }
+
+  void setDate(DateTime value) => state = value;
+}
+
+final startDateProvider = NotifierProvider<StartDateNotifier, DateTime>(
+  () => StartDateNotifier(),
+);
+
+class EndDateNotifier extends Notifier<DateTime> {
+  @override
+  DateTime build() => DateTime.now();
+
+  void setDate(DateTime value) => state = value;
+}
+
+final endDateProvider = NotifierProvider<EndDateNotifier, DateTime>(
+  () => EndDateNotifier(),
+);
+
 final statisticsProvider = FutureProvider<List<StatGroupModel>>((ref) async {
   final repository = ref.watch(statisticsRepositoryProvider);
   final groupType = ref.watch(statGroupTypeProvider);
   final sortType = ref.watch(statSortTypeProvider);
+  final startDate = ref.watch(startDateProvider);
+  final endDate = ref.watch(endDateProvider);
 
   List<StatGroupModel> data = [];
 
@@ -65,16 +92,16 @@ final statisticsProvider = FutureProvider<List<StatGroupModel>>((ref) async {
       data = await repository.getReportsByStatus();
       break;
     case StatGroupType.reportsByReason:
-      data = await repository.getReportsByReason();
+      data = await repository.getReportsByReason(startDate: startDate, endDate: endDate);
       break;
     case StatGroupType.usersByStatus:
       data = await repository.getUsersByStatus();
       break;
     case StatGroupType.roomsByType:
-      data = await repository.getRoomsByType();
+      data = await repository.getRoomsByType(startDate: startDate, endDate: endDate);
       break;
     case StatGroupType.revenueByMonth:
-      data = await repository.getRevenueByMonth();
+      data = await repository.getRevenueByMonth(startDate: startDate, endDate: endDate);
       break;
   }
 
